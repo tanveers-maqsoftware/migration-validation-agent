@@ -6,12 +6,16 @@ sit behind a login wall. Run this ONCE on a machine with a display, from the
 
     uv run python scripts/authenticate.py
 
-A real Chromium window opens. Sign in to Power BI (and Tableau Server if you
-need it), navigate until you can actually see your report content, then return
-to this terminal and press Enter. The session (cookies + localStorage) is saved
-to ``auth-state.json`` and passed to the Playwright MCP server via its
-``--storage-state`` flag (see ``.mcp.json``), so validation runs no longer hit
-the sign-in page.
+A real Microsoft Edge window opens. Sign in to Power BI (and Tableau Server if
+you need it), navigate until you can actually see your report content, then
+return to this terminal and press Enter. The session (cookies + localStorage)
+is saved to ``auth-state.json`` and passed to the Playwright MCP server via
+its ``--storage-state`` flag (see ``.mcp.json``), so validation runs no longer
+hit the sign-in page.
+
+Uses the ``msedge`` channel so the captured session matches the browser
+validation runs use (see ``--browser=msedge`` in ``.mcp.json``) — useful when
+your org's conditional access / SSO is tied to a specific browser.
 
 Re-run this whenever the saved session expires (you'll see the login wall again).
 """
@@ -28,7 +32,7 @@ LOGIN_START_URL = "https://app.powerbi.com/"
 
 async def main() -> None:
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch(headless=False)
+        browser = await playwright.chromium.launch(headless=False, channel="msedge")
         context = await browser.new_context(
             viewport={"width": 1920, "height": 1080},
         )

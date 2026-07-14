@@ -4,6 +4,7 @@
       "command": "npx",
       "args": [
         "@playwright/mcp@latest",
+        "--browser=msedge",
         "--viewport-size=1920x1080",
         "--output-dir=validation-screenshots"
       ]
