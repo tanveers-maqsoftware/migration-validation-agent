@@ -1,0 +1,228 @@
+
+Next custom tool or agent topic -
+ 
+Validation and Sanity Agent
+ 
+Tableau vs Power BI report 
+before Vs After
+ 
+ 
+===============
+ 
+ 
+Here is some suggestion - 
+For a Tableau → Power BI migration program, a robust AI-driven solution can be designed where the only manual input is the Tableau URL and Power BI URL, and everything else is automated.
+Target Architecture
+ 
+User
+ |
+ |-- Tableau URL
+ |-- Power BI URL
+ |
+AI Orchestrator
+ |
+ +-- Metadata Extraction Agent
+ +-- Screenshot Validation Agent
+ +-- Filter Validation Agent
+ +-- Data Extraction Agent
+ +-- Variance Analysis Agent
+ +-- UAT Report Generator
+ |
+Validation Dashboard
+ 
+Step 1: Report Discovery
+Input:
+ 
+{
+ "tableauUrl": "...",
+ "powerBiUrl": "..."
+}
+Automation:
+	• Read report metadata
+	• Identify pages/tabs
+	• Identify visuals
+	• Identify filters/slicers
+	• Identify drill paths
+	• Capture KPI cards
+Output:
+ 
+{
+ "pages": 12,
+ "visuals": 86,
+ "filters": 14,
+ "kpis": 23
+}
+ 
+Step 2: Screenshot & Layout Validation
+Agent captures screenshots from:
+	• Tableau page
+	• Power BI page
+Uses Computer Vision/LLM Vision to compare:
+Check
+✅ Visual existence
+✅ Chart type
+✅ Titles
+✅ Labels
+✅ Legends
+✅ Formatting
+✅ Missing visuals
+Output:
+ 
+Page: Executive Summary
+Visual Match : 98%
+Missing : 1 visual
+Layout Difference : Low
+ 
+Step 3: Automated Filter Validation
+Agent discovers filters automatically.
+Example:
+ 
+Country
+Region
+Year
+Category
+Then generates combinations:
+ 
+Country = US
+Country = UK
+Year = 2025
+Year = 2026
+Applies filters in both reports.
+Captures results.
+Compares values.
+ 
+Step 4: UI Data Extraction
+Most important step.
+Agent reads all visible values from:
+Cards
+ 
+Revenue
+Customer Count
+Profit
+Tables
+ 
+Row values
+Column values
+Subtotals
+Grand totals
+Charts
+Extract data points using:
+	• Tableau APIs (if available)
+	• Power BI APIs
+	• UI scraping
+	• OCR fallback
+Output:
+ 
+{
+ "Revenue": {
+     "Tableau": 145.6M,
+     "PowerBI": 145.7M
+ }
+}
+ 
+Step 5: Variance Engine
+Calculate:
+ 
+Difference
+Variance %
+Threshold
+Example:
+KPI	Tableau	Power BI	Variance
+Revenue	145.6M	145.7M	0.07%
+Customer	44,123	44,123	0%
+Rules:
+ 
+0% = Pass
+<0.5% = Warning
+>0.5% = Fail
+ 
+Step 6: Drill-through Validation
+Agent:
+	• Clicks visual
+	• Opens detail page
+	• Validates child data
+Example:
+ 
+Sales
+-> Region
+-> Country
+-> Store
+Compare both paths.
+ 
+Step 7: Export Validation
+Automation exports data from:
+ 
+Tableau
+Power BI
+``
+Compare:
+	• Row count
+	• Distinct count
+	• Totals
+	• Missing records
+This provides much deeper validation than screenshots.
+ 
+Step 8: AI Root Cause Analysis
+If mismatch detected:
+AI investigates:
+Possible reasons
+	• Different filter applied
+	• DAX issue
+	• LOD conversion issue
+	• Missing relationship
+	• Null handling
+	• Join issue
+	• Duplicate records
+Output:
+ 
+Revenue mismatch: 1.1%
+Probable cause:
+Customer table relationship inactive in Power BI model.
+Confidence: 82%
+ 
+Step 9: Generate Validation Report
+Automatically create:
+Executive Summary
+ 
+Reports Validated : 120
+Pages Compared : 950
+Visuals Compared : 6,400
+Pass : 91%
+Warning : 6%
+Fail : 3%
+Detailed Sheet
+Report	Page	Visual	Status
+ 
+Suggested Tech Stack
+For a MAQ-style migration accelerator:
+UI Automation
+	• Playwright
+	• Selenium
+	• Power Automate Desktop
+AI
+	• GPT-5 / Azure OpenAI
+	• Vision Models
+Data Comparison
+	• Python
+	• Pandas
+Power BI
+	• REST API
+	• XMLA Endpoint
+	• Semantic Model APIs
+Tableau
+	• Tableau Metadata API
+	• Tableau REST API
+Reporting
+	• Power BI Validation Dashboard
+ 
+Recommended Enhancement
+Since you're already working on multiple Tableau → Power BI/Fabric migrations, I'd strongly recommend building a reusable "Migration Validation Agent":
+Input: Tableau URL + Power BI URL
+Output:
+	• Visual comparison report
+	• KPI variance report
+	• Filter validation report
+	• Drill-through validation report
+	• UAT signoff package
+	• Executive migration summary
+This can reduce manual validation effort by 70–90% compared to traditional UAT-driven comparison processes, while also providing an auditable reconciliation artifact for stakeholder sign-off. Based on your organization's migration materials, reconciliation, validation, and parallel-run verification are already key migration activities, making this approach a natural fit.

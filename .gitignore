@@ -1,0 +1,21 @@
+# Secrets — never commit credentials or captured login sessions
+.env
+auth-state.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Run outputs — regenerated on every validation run
+validation-screenshots/
+validation-reports/
+harness-log.json
+
+# OS / editor noise
+.DS_Store
+Thumbs.db

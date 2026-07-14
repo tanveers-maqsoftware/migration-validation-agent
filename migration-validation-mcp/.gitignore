@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+playwright-report/
+test-results/
+.env
+*.pyc
+
+# Captured authenticated session — contains auth tokens, never commit
+auth-state.json
+
+# Generated validation outputs
+validation-screenshots/
+validation-reports/
+harness-log.json
