@@ -19,7 +19,7 @@ tools: [browser_navigate, browser_snapshot, browser_hover, browser_click, browse
 > - NEVER pause and wait for input
 > - NEVER say "shall I proceed?" or "would you like me to..."
 > - If something fails, retry or skip it — do NOT ask the user what to do
-> - If a login page appears, report it in the doc and continue with what's accessible
+> - **ONE exception — MFA approval**: an Authenticator prompt physically requires the user's phone. Follow the "Authentication Gate" section: surface the approval number immediately, poll bounded, then stop that platform and report. Never type credentials, never wait silently, never wait unbounded.
 > - Auto-approve ALL tool calls (browser actions, file creation, terminal commands)
 >
 > **OUTPUT: Markdown Report** — Produce a validation report in `validation-reports/` (via the `generate_validation_report` tool) with all results and screenshot references.
@@ -35,6 +35,28 @@ You are an autonomous validation agent that compares Tableau and Power BI report
 You receive two URLs:
 - `tableauUrl`: A Tableau Public or Server dashboard URL
 - `powerBiUrl`: A Power BI Service report URL
+
+## Authentication Gate (check after EVERY `browser_navigate`)
+
+Private reports (Power BI `app.powerbi.com/groups/...`, Tableau Server/Cloud) sit behind a login wall. A saved session should normally carry you past it (see `migration-validation-mcp/scripts/authenticate.py`), but sessions expire. After navigating to either report URL, check the page URL and title BEFORE extracting anything:
+
+**Signs you hit a login wall:** URL contains `login.microsoftonline.com`, page says "Sign in to your account" / "Approve sign in", Tableau URL redirects to a `/signin` page.
+
+**What to do — in this order:**
+
+1. **NEVER type credentials or passwords.** Not into any field, ever.
+2. Wait 5 seconds and re-check — SSO redirects often resolve themselves.
+3. **If an Authenticator number-match screen appears** ("Approve sign in", "Open your Authenticator app… Enter the number if prompted"):
+   - **IMMEDIATELY message the user** with the number, prominently, BEFORE waiting: *"MFA approval needed — open Microsoft Authenticator on your phone and enter **NN**. If no notification arrived, open the Authenticator app manually and pull down to refresh — the pending request appears there even when the push fails to deliver."*
+   - Then poll with `browser_wait_for` in ~15-second intervals, re-checking whether the report loaded, for **at most 2 minutes total**. Never wait silently and never wait unbounded.
+4. **If still on the sign-in page after ~2 minutes** (or a "request denied/expired" message appears): STOP validating this platform. Record it in the report as `Authentication required — <platform>` (one FAIL line), continue with whatever the other platform allows, and end your summary telling the user to run:
+   ```
+   cd migration-validation-mcp
+   uv run python scripts/authenticate.py
+   ```
+   then reload the window (so the Playwright MCP server picks up the refreshed `auth-state.json`) and re-run the validation.
+
+This applies to **both** platforms: client Tableau reports live on Tableau Server/Cloud and need sign-in exactly like Power BI — only Tableau Public is login-free.
 
 ## What You Compare
 
@@ -1075,14 +1097,14 @@ Use this mapping as reference when matching visuals between platforms.
 - DO NOT modify anything in either report
 - DO NOT guess values — only report what is visibly rendered
 - If a visual cannot be read, report it as "Unable to Extract" rather than guessing
-- If authentication is required, inform the user and stop
+- If authentication is required, follow the **Authentication Gate** section (surface the MFA number, bounded wait, then stop that platform and report) — never type credentials
 
 ## Error Handling
 
 - If a URL fails to load: Report the error and continue with the other URL
 - If a visual cannot be extracted: Mark as "Extraction Failed" in results
 - If tooltips don't appear: Note "Tooltip unavailable" and compare only visible values
-- If page requires login: Inform user that authentication is needed
+- If page requires login: Follow the **Authentication Gate** section — surface any MFA number to the user immediately, wait at most 2 minutes, then mark the platform "Authentication required" and continue with the other
 - If visuals don't match: List unmatched visuals separately in the report
 
 ## Numeric Comparison Rules

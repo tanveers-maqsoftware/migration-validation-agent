@@ -18,6 +18,19 @@ argument-hint: 'Provide Tableau URL and Power BI URL to compare'
 - Both report URLs must be accessible (public or user is authenticated)
 - Browser tools must be available (Playwright-based)
 
+## Authentication Gate (check after EVERY `browser_navigate`)
+
+Private reports (Power BI `app.powerbi.com/groups/...`, Tableau Server/Cloud — i.e. anything not on Tableau Public / "Publish to web") sit behind a login wall. A saved session normally carries you past it (captured by `migration-validation-mcp/scripts/authenticate.py`, wired in automatically via `scripts/run-playwright-mcp.mjs`), but sessions expire. After navigating to either report URL, check the page URL and title BEFORE extracting anything.
+
+**Signs you hit a login wall:** URL contains `login.microsoftonline.com`, page says "Sign in to your account" / "Approve sign in", Tableau URL redirects to a `/signin` page.
+
+**What to do — in this order:**
+
+1. **NEVER type credentials or passwords** into any field.
+2. Wait 5 seconds and re-check — SSO redirects often resolve on their own.
+3. **If an Authenticator number-match screen appears** ("Approve sign in", "Enter the number if prompted"): **immediately tell the user the number, prominently, before waiting** — e.g. *"MFA approval needed — open Microsoft Authenticator and enter **NN**. If no notification arrived, open the Authenticator app manually and pull down to refresh — the pending request appears there even when the push fails to deliver."* Then poll in ~15s intervals (`browser_wait_for`) for **at most 2 minutes total**. Never wait silently or unbounded.
+4. **Still on the sign-in page after ~2 minutes** (or the request was denied/expired)? Stop validating this platform: record `Authentication required — <platform>` as one FAIL in the report, continue with the other platform, and end your summary telling the user to run `uv run python scripts/authenticate.py` from `migration-validation-mcp/`, restart the MCP servers, and re-run the validation.
+
 ## Procedure
 
 ### Step 1: Receive Input
@@ -428,7 +441,7 @@ PASSED:
 | Scenario | Action |
 |----------|--------|
 | URL fails to load | Report error, continue with other URL |
-| Authentication required | Inform user, stop execution |
+| Authentication required | Follow the **Authentication Gate** section (surface MFA number, bounded wait, then fail that platform and continue with the other) |
 | Visual extraction fails | Mark as "Extraction Failed" in results |
 | Tooltip doesn't appear | Skip tooltip, compare visible values only |
 | Page timeout | Retry once, then report timeout |

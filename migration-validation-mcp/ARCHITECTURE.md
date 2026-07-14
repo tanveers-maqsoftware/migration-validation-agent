@@ -114,8 +114,13 @@ Beyond static visual comparison, the playbook exercises the reports:
   LLM; a `match_visuals` tool could make it deterministic too.
 - **Structured extraction:** the JS snippets for table scrolling and pie-tooltip
   sweeps still live in the playbook markdown.
-- **Auth:** `scripts/authenticate.py` captures a session; wiring
-  `--storage-state` into `.mcp.json` is a manual step today.
+- **Auth:** `scripts/authenticate.py` captures a session and the shared MCP
+  configs pass it via `--storage-state` automatically (through
+  `scripts/run-playwright-mcp.mjs` at the repo root, which writes an empty
+  placeholder when no session exists so fresh clones still start). Remaining
+  gap: a session that expires *mid-run* still needs the user to approve MFA
+  on their phone — the playbook's Authentication Gate bounds that wait and
+  surfaces the approval number instead of stalling.
 - **Export/API reconciliation & deep root-cause analysis** (row counts, totals,
   semantic-model inspection via Tableau REST / Power BI XMLA) is deliberately
   out of scope while the "browser-rendered only" rule stands; if adopted, build

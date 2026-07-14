@@ -90,43 +90,44 @@ a bug. It's validating the pipeline, not migration accuracy.
 
 ---
 
-## Private reports (auth setup — local only, per person)
+## Private reports (auth setup — one command, per person)
 
-Private Power BI (`app.powerbi.com/groups/...`) or Tableau Server reports
-sit behind your org's sign-in. This requires a **one-time, per-machine,
-per-person** setup — it is intentionally **not** part of the shared config,
-for a reason explained below.
+Private Power BI (`app.powerbi.com/groups/...`) or Tableau Server/Cloud
+reports sit behind your org's sign-in. Capturing a session is a **one-time,
+per-machine, per-person** step:
 
 1. ```powershell
    cd migration-validation-mcp
    uv run python scripts/authenticate.py
    ```
-   A real Edge window opens. Sign in with your own account, navigate to a
-   report you can see, then return to the terminal and press Enter. This
-   saves `auth-state.json` (gitignored — it holds your session cookies and
-   must never be committed or shared).
+   A real Edge window opens. Sign in with your own account (approve the MFA
+   prompt on your phone — the script prints what to do if the Authenticator
+   notification doesn't arrive), open a report you can see, and — if your
+   Tableau reports are on Tableau Server/Cloud rather than Tableau Public —
+   also open your Tableau site in a second tab and sign in there. Then return
+   to the terminal and press Enter. This saves `auth-state.json` (gitignored —
+   it holds your session cookies and must never be committed or shared).
 
-2. In your **own local copy** of `.mcp.json` (or `.vscode/mcp.json`), add
-   one flag to the `playwright` server's `args`:
-   ```
-   "--storage-state=migration-validation-mcp/auth-state.json"
-   ```
-
-3. **Do not commit that change.** `.mcp.json`/`.vscode/mcp.json` are shared,
-   version-controlled files. If this flag is committed while pointing at a
-   personal, gitignored file, then anyone who clones the repo fresh — even
-   for public-report testing — gets:
-   ```
-   Error reading storage state from migration-validation-mcp/auth-state.json:
-   ENOENT: no such file or directory
-   ```
-   and Playwright MCP fails to start **entirely**, breaking the whole
-   toolset for them, not just private reports. This has already happened
-   once on this project — keep the flag local.
+2. **Restart the MCP servers** (reload the VS Code window / restart Claude
+   Code). That's it — no config editing. The shared configs launch Playwright
+   through [scripts/run-playwright-mcp.mjs](scripts/run-playwright-mcp.mjs),
+   which passes `--storage-state=migration-validation-mcp/auth-state.json`
+   automatically. On machines that never ran `authenticate.py`, the wrapper
+   writes an *empty* placeholder session, so fresh clones keep working for
+   public reports (no more `ENOENT ... auth-state.json` startup crash).
 
 Auth sessions are per-person by design: even if `auth-state.json` were
 shared, it would carry *your* identity and permissions, not a teammate's.
 Everyone who needs private reports runs their own `authenticate.py`.
+
+**Why do this instead of letting the agent sign in mid-run?** Without a saved
+session, the agent hits the login wall during validation and has to drive MFA
+interactively — sending an Authenticator push and waiting on your approval,
+which stalls the run (and fails outright when the notification doesn't
+arrive). With the session captured up front, runs stay fully autonomous. If a
+run does hit a login wall (expired session), the agent playbook now surfaces
+the MFA number immediately, waits at most 2 minutes, then marks that platform
+"Authentication required" and tells you to re-run `authenticate.py`.
 
 ---
 
@@ -159,11 +160,12 @@ npx @modelcontextprotocol/inspector npx @playwright/mcp@latest --browser=msedge
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `ENOENT ... auth-state.json` right after clone | A `--storage-state` flag pointing at someone's personal file got committed | Remove the flag from the shared `.mcp.json`/`.vscode/mcp.json`, or add your own local `auth-state.json` per the section above |
-| Screenshots don't render in the `.md` report | Playwright MCP and the Python server were launched with different working directories, so relative image paths don't resolve | Confirm `--output-dir=migration-validation-mcp/validation-screenshots` in the `playwright` server args (already fixed in this repo) |
+| `ENOENT ... auth-state.json` at startup | Playwright MCP was launched directly with `--storage-state` instead of through the wrapper | Make sure the `playwright` server in `.mcp.json`/`.vscode/mcp.json` runs `node scripts/run-playwright-mcp.mjs` — the wrapper creates a placeholder session file when none exists |
+| Screenshots don't render in the `.md` report | Playwright MCP and the Python server were launched with different working directories, so relative image paths don't resolve | Confirm `--output-dir=migration-validation-mcp/validation-screenshots` in `scripts/run-playwright-mcp.mjs` (already fixed in this repo) |
 | VS Code Copilot Chat: *"No utility model is configured for 'copilot-utility-small' while the selected main agent model is BYOK"* | Your main chat model is a custom/BYOK provider (e.g. an internal org gateway); Copilot Chat also needs a small "utility model" mapped for internal tasks, and none is set | Configure a utility model via Command Palette → "GitHub Copilot: Manage Models", or ask whoever administers your org's BYOK provider. Unrelated to this repo — Claude Code doesn't need this at all |
 | MCP Inspector: `-32602 Invalid request parameters` on a nested-object tool (e.g. `compare_visuals`) | A client-side form-assembly quirk in the Inspector UI for deeply nested JSON, not a server bug | Click **Switch to JSON** on the *entire* field again to force a resync, or use **Copy Input** to see exactly what was about to be sent |
-| Power BI report shows a sign-in page in the report | No `auth-state.json` configured, or the captured session expired | Run `scripts/authenticate.py` again (see above) |
+| Power BI or Tableau report shows a sign-in page mid-run | No session captured yet, or the captured session expired | Run `scripts/authenticate.py` again (see above), then restart the MCP servers |
+| Agent stalls on "Approve sign in" / Authenticator number prompt during a run | Same as above — the agent fell through to interactive MFA | Approve within 2 minutes if you can (no push? open Authenticator manually and pull to refresh); otherwise let the run finish, then run `scripts/authenticate.py` and re-run the validation |
 | Most visuals report "Unmatched" | The two report URLs aren't actually a migrated pair (different content) | Expected — use a real before/after pair for a meaningful accuracy result |
 
 ---
@@ -190,5 +192,6 @@ for the full runtime flow, comparison rules, and design decisions.
 ├── .vscode/mcp.json           # MCP servers for VS Code
 ├── .github/agents/            # VS Code custom agent playbook
 ├── .claude/skills/            # Claude Code skill (same methodology)
+├── scripts/                   # run-playwright-mcp.mjs — launches Playwright MCP with auth session
 └── migration-validation-mcp/  # Python MCP server (domain tools) — see its README
 ```

@@ -2,12 +2,9 @@
   "servers": {
     "playwright": {
       "type": "stdio",
-      "command": "npx",
+      "command": "node",
       "args": [
-        "@playwright/mcp@latest",
-        "--browser=msedge",
-        "--viewport-size=1920x1080",
-        "--output-dir=migration-validation-mcp/validation-screenshots"
+        "scripts/run-playwright-mcp.mjs"
       ]
     },
     "migration-validation": {
