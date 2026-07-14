@@ -7,8 +7,7 @@
         "@playwright/mcp@latest",
         "--browser=msedge",
         "--viewport-size=1920x1080",
-        "--output-dir=validation-screenshots",
-        "--storage-state=migration-validation-mcp/auth-state.json"
+        "--output-dir=migration-validation-mcp/validation-screenshots"
       ]
     },
     "migration-validation": {
