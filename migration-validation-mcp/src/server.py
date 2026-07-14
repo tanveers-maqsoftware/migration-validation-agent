@@ -43,8 +43,9 @@ def build_tool_specs(toolbox: ValidationToolbox) -> dict[str, ToolSpec]:
             name="compare_values",
             description=(
                 "Compare rendered value pairs (Tableau vs Power BI) using the "
-                "migration tolerance rules: numbers within 1%, percentages "
-                "within 1 point, text case-insensitive, dates normalized"
+                "migration tolerance rules: numbers banded (0% pass, <=0.5% "
+                "warning, above fail), percentages within 1 point, text "
+                "case-insensitive, dates normalized"
             ),
             input_model=CompareValuesInput,
             handler=toolbox.compare_values,
