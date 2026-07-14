@@ -25,6 +25,7 @@ from src.tools.validation_tools import (
     CompareVisualsInput,
     EmptyInput,
     GenerateReportInput,
+    RecordRunInput,
     ValidationToolbox,
 )
 
@@ -65,6 +66,24 @@ def build_tool_specs(toolbox: ValidationToolbox) -> dict[str, ToolSpec]:
             ),
             input_model=GenerateReportInput,
             handler=toolbox.generate_validation_report,
+        ),
+        ToolSpec(
+            name="record_validation_run",
+            description=(
+                "Append a completed run (summary counts + self-harness check "
+                "outcomes) to harness-log.json and get cumulative statistics"
+            ),
+            input_model=RecordRunInput,
+            handler=toolbox.record_validation_run,
+        ),
+        ToolSpec(
+            name="get_validation_history",
+            description=(
+                "Read all recorded validation runs and cumulative statistics "
+                "(average pass rate, most common failed harness check)"
+            ),
+            input_model=EmptyInput,
+            handler=toolbox.get_validation_history,
         ),
     ]
     return {spec.name: spec for spec in specs}

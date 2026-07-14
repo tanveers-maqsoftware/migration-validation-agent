@@ -9,9 +9,11 @@ server only owns what Playwright cannot: the validation rules.
 
 | Tool | Purpose |
 |------|---------|
-| `compare_values` | Compare rendered value pairs with tolerance rules (numbers ≤1%, percentages ≤1pt, text case-insensitive, dates normalized) |
+| `compare_values` | Compare rendered value pairs with banded rules (numbers: 0% pass / ≤0.5% warning / >0.5% fail; percentages ≤1pt; text case-insensitive; dates normalized) |
 | `compare_visuals` | Compare two matched visuals data-point by data-point |
 | `generate_validation_report` | Render all comparisons into a Markdown report in `validation-reports/` |
+| `record_validation_run` | Append a completed run to `harness-log.json`, returns cumulative stats |
+| `get_validation_history` | All recorded runs + cumulative stats (avg pass rate, most common failed check) |
 | `health_check` | Server liveness probe |
 
 ## Layout
@@ -25,10 +27,12 @@ server only owns what Playwright cannot: the validation rules.
 │   ├── models/                # Pydantic domain models
 │   │   ├── visual.py          #   Visual, DataPoint, Platform, VisualType
 │   │   ├── comparison.py      #   ValueComparison, VisualComparison, status
-│   │   └── report.py          #   ValidationReport, ReportSummary
+│   │   ├── report.py          #   ValidationReport, ReportSummary
+│   │   └── history.py         #   ValidationRunRecord, RunHistoryStats
 │   ├── services/              # business logic (no MCP, no I/O with agent)
-│   │   ├── comparator.py      #   ValueComparator — the tolerance rules
-│   │   └── report_builder.py  #   MarkdownReportBuilder
+│   │   ├── comparator.py      #   ValueComparator — the comparison bands
+│   │   ├── report_builder.py  #   MarkdownReportBuilder
+│   │   └── run_history.py     #   RunHistoryService — harness-log.json
 │   └── tools/                 # MCP tool layer
 │       ├── registry.py        #   ToolSpec — schema derived from Pydantic
 │       └── validation_tools.py#   ValidationToolbox — tool handlers

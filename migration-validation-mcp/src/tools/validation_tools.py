@@ -13,8 +13,10 @@ from pydantic import BaseModel, Field
 
 from src.config.settings import settings
 from src.models import ValidationReport, Visual, VisualComparison
+from src.models.history import ValidationRunRecord
 from src.services.comparator import ValueComparator
 from src.services.report_builder import MarkdownReportBuilder
+from src.services.run_history import RunHistoryService
 
 
 # -- tool inputs (their JSON schemas are what the agent sees) ----------------
@@ -53,6 +55,10 @@ class GenerateReportInput(BaseModel):
     )
 
 
+class RecordRunInput(ValidationRunRecord):
+    """A completed run to append to the history log (same shape as the record)."""
+
+
 # -- the toolbox --------------------------------------------------------------
 
 class ValidationToolbox:
@@ -62,11 +68,13 @@ class ValidationToolbox:
         self,
         comparator: ValueComparator | None = None,
         report_builder: MarkdownReportBuilder | None = None,
+        run_history: RunHistoryService | None = None,
     ) -> None:
         self._comparator = comparator or ValueComparator()
         self._report_builder = report_builder or MarkdownReportBuilder(
             settings.reports_dir
         )
+        self._run_history = run_history or RunHistoryService(settings.history_path)
 
     async def health_check(self, _: EmptyInput) -> dict[str, Any]:
         return {
@@ -102,4 +110,20 @@ class ValidationToolbox:
         return {
             "report_path": str(path),
             "summary": report.summary().model_dump(),
+        }
+
+    async def record_validation_run(self, args: RecordRunInput) -> dict[str, Any]:
+        record = ValidationRunRecord.model_validate(args.model_dump())
+        stats = self._run_history.append(record)
+        return {
+            "recorded": True,
+            "harness_score": record.harness_score,
+            "cumulative": stats.model_dump(),
+        }
+
+    async def get_validation_history(self, _: EmptyInput) -> dict[str, Any]:
+        records = self._run_history.load()
+        return {
+            "runs": [record.model_dump(mode="json") for record in records],
+            "cumulative": self._run_history.stats(records).model_dump(),
         }

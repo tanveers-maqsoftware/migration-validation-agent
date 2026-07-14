@@ -8,7 +8,11 @@ from src.services.comparator import ValueComparator, parse_number
 
 @pytest.fixture
 def comparator() -> ValueComparator:
-    return ValueComparator(numeric_tolerance_pct=1.0, percentage_tolerance_points=1.0)
+    return ValueComparator(
+        numeric_pass_pct=0.0,
+        numeric_warning_pct=0.5,
+        percentage_tolerance_points=1.0,
+    )
 
 
 class TestParseNumber:
@@ -37,15 +41,29 @@ class TestParseNumber:
 
 
 class TestCompareValue:
-    def test_numbers_within_one_percent_pass(self, comparator):
+    def test_equal_numbers_pass(self, comparator):
         result = comparator.compare_value("Sales", "2.27M", "2,270,000")
         assert result.status == ComparisonStatus.PASS
         assert result.variance_pct == 0.0
 
-    def test_numbers_beyond_tolerance_fail(self, comparator):
+    def test_small_variance_lands_in_warning_band(self, comparator):
+        # 145.6M vs 145.7M is ~0.07% — inside the 0.5% warning band
+        result = comparator.compare_value("Revenue", "145.6M", "145.7M")
+        assert result.status == ComparisonStatus.WARNING
+        assert result.variance_pct == 0.07
+        assert result.reason == "Within warning band"
+
+    def test_numbers_beyond_warning_band_fail(self, comparator):
         result = comparator.compare_value("Sales", "$1.25M", "$1.21M")
         assert result.status == ComparisonStatus.FAIL
         assert result.variance_pct == -3.2
+
+    def test_pass_band_is_configurable(self):
+        lenient = ValueComparator(
+            numeric_pass_pct=1.0, numeric_warning_pct=2.0, percentage_tolerance_points=1.0
+        )
+        result = lenient.compare_value("Revenue", "145.6M", "145.7M")
+        assert result.status == ComparisonStatus.PASS
 
     def test_percentages_compare_on_points(self, comparator):
         assert (

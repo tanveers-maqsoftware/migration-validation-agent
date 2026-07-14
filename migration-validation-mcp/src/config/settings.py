@@ -20,9 +20,15 @@ class Settings(BaseSettings):
     # so private reports open without a login wall.
     auth_state_path: Path = Path("auth-state.json")
 
-    # Comparison tolerances (see src/services/comparator.py).
-    numeric_tolerance_pct: float = 1.0
+    # Comparison bands for numeric values (see src/services/comparator.py):
+    # variance <= pass band → PASS; <= warning band → WARNING; above → FAIL.
+    # Defaults follow the validation methodology: 0% = pass, <0.5% = warning.
+    numeric_pass_pct: float = 0.0
+    numeric_warning_pct: float = 0.5
     percentage_tolerance_points: float = 1.0
+
+    # Where record_validation_run appends its per-run harness records.
+    history_path: Path = Path("harness-log.json")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

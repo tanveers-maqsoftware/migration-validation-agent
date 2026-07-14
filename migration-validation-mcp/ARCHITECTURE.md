@@ -25,8 +25,8 @@ flowchart TB
     end
 
     subgraph MCP["⚙️ migration-validation MCP (src/server.py)"]
-        TOOLS["compare_values · compare_visuals<br/>generate_validation_report · health_check"]
-        SVC["ValueComparator · MarkdownReportBuilder<br/>(src/services/)"]
+        TOOLS["compare_values · compare_visuals<br/>generate_validation_report · record_validation_run<br/>get_validation_history · health_check"]
+        SVC["ValueComparator · MarkdownReportBuilder · RunHistoryService<br/>(src/services/)"]
         MODELS["Pydantic models<br/>(src/models/)"]
     end
 
@@ -74,7 +74,7 @@ sequenceDiagram
 
 | Value kind | Rule |
 |------------|------|
-| Numbers (handles `$`, `,`, `K/M/B`, `(…)` negatives) | pass if relative diff ≤ `NUMERIC_TOLERANCE_PCT` (default 1%) |
+| Numbers (handles `$`, `,`, `K/M/B`, `(…)` negatives) | banded: ≤ `NUMERIC_PASS_PCT` (default 0%) **PASS**, ≤ `NUMERIC_WARNING_PCT` (default 0.5%) **WARNING**, above **FAIL** |
 | Percentages | pass if absolute diff ≤ `PERCENTAGE_TOLERANCE_POINTS` (default 1pt) |
 | Dates | normalized across common formats, must be the same day |
 | Text | case-insensitive, whitespace-collapsed equality |
@@ -93,7 +93,22 @@ Tolerances are configurable via `.env` (see `.env.example`).
 - **Errors never kill the stdio session:** tool failures are returned to the
   agent as `{"error": ...}` so it can retry or work around them.
 
-## 5. Known gaps / roadmap
+## 5. Validation coverage
+
+Beyond static visual comparison, the playbook exercises the reports:
+
+- **Filter validation** (Phase 4B): applies matching slicer/filter values on
+  both platforms (max 5 filters × 2 values, one at a time), re-reads the
+  affected KPIs, and compares via `compare_values`.
+- **Drill-through validation** (Phase 4C): drills one representative path one
+  level down on both platforms, checks children sum to the parent and match
+  child-by-child.
+- **Run history**: every run is appended to `harness-log.json` via
+  `record_validation_run`; `get_validation_history` returns cumulative stats
+  (average pass rate, most common failed harness check) — the seed for an
+  executive rollup dashboard.
+
+## 6. Known gaps / roadmap
 
 - **Visual matching** (title similarity search across tabs) still happens in the
   LLM; a `match_visuals` tool could make it deterministic too.
@@ -101,6 +116,10 @@ Tolerances are configurable via `.env` (see `.env.example`).
   sweeps still live in the playbook markdown.
 - **Auth:** `scripts/authenticate.py` captures a session; wiring
   `--storage-state` into `.mcp.json` is a manual step today.
+- **Export/API reconciliation & deep root-cause analysis** (row counts, totals,
+  semantic-model inspection via Tableau REST / Power BI XMLA) is deliberately
+  out of scope while the "browser-rendered only" rule stands; if adopted, build
+  it as a second validation mode, not into this agent.
 
 ## References
 

@@ -1,6 +1,6 @@
 ---
 description: "Compares Tableau and Power BI reports by opening report URLs in a browser and validating visible rendered values. Use when: validating migration accuracy between Tableau and Power BI dashboards, comparing KPI cards, tables, matrices, bar charts, line charts, pie charts, filters, legends, axis labels, and tooltip values across both platforms."
-tools: [browser_navigate, browser_snapshot, browser_hover, browser_click, browser_evaluate, browser_wait_for, browser_take_screenshot, browser_close, compare_values, compare_visuals, generate_validation_report, run_in_terminal, create_file]
+tools: [browser_navigate, browser_snapshot, browser_hover, browser_click, browser_evaluate, browser_wait_for, browser_take_screenshot, browser_close, compare_values, compare_visuals, generate_validation_report, record_validation_run, get_validation_history, run_in_terminal, create_file]
 ---
 
 > **FULLY AUTONOMOUS — ZERO USER INTERACTION**
@@ -529,7 +529,7 @@ Missed Visuals (could not extract):
 
 | What to Compare | Source | Comparison Rule |
 |-----------------|--------|----------------|
-| Numeric values | Tooltip on hover | Pass if difference ≤ 1% |
+| Numeric values | Tooltip on hover | 0% variance = Pass, ≤0.5% = Warning, >0.5% = Fail |
 | Category names | Axis labels + tooltip | Case-insensitive exact match |
 | Percentages | Tooltip or data label | Pass if difference ≤ 1 percentage point |
 | Series/Legend names | Legend text | Same entries present (order-independent) |
@@ -539,6 +539,35 @@ Missed Visuals (could not extract):
 > **Use the `compare_values` / `compare_visuals` tools** (migration-validation MCP server) for every comparison — pass the raw rendered strings (e.g. "$1.2M", "45.3%") and the tools apply the tolerance rules above deterministically, returning pass/warning/fail with variance %. Do NOT compute tolerances yourself.
 
 **Step 4: If a Power BI visual has NO matching Tableau visual across any tab, mark it as "Unmatched" but still include it in the output.**
+
+### Phase 4B: Filter Validation (MANDATORY when filters/slicers exist)
+
+Filters must be *exercised*, not just inventoried. For each filter/slicer that exists on **both** platforms (match by field name, case-insensitive):
+
+1. **Pick test values**: the first 2 distinct values of each filter (e.g. `Year = 2011`, `Year = 2012`). Test filters **one at a time** — do not combine filters.
+2. **Apply on Power BI**: click the slicer value (`browser_click` on the slicer item), wait for visuals to re-render (`browser_wait_for` / 2-3s), then re-read the 1-3 most prominent affected values (KPI cards first, else first chart's tooltip).
+3. **Apply the same filter on Tableau**: click the corresponding filter value, wait, re-read the same values.
+4. **Compare** via `compare_values`, one pair per re-read value, labeled `"<Filter>=<value> · <measure>"` (e.g. `"Year=2011 · Total Sales"`).
+5. **Reset both filters** before testing the next one (Power BI: "Clear selections" / eraser icon; Tableau: filter dropdown → "(All)" or the revert button).
+6. **Package results** as one `VisualComparison` per filter, `title: "Filter check: <Filter>"`, `visual_type: "slicer"`, and include it in the `comparisons` list passed to `generate_validation_report`.
+
+If a filter exists on only one platform, add a `VisualComparison` titled `"Filter check: <Filter>"` with a single FAIL value labeled "Filter missing in <platform>".
+
+**Budget**: max 2 values × max 5 filters. If the report has more, test the 5 filters that affect the most visuals and note the rest as "Not exercised".
+
+### Phase 4C: Drill-through / Drill-down Validation (when drill paths exist)
+
+1. **Detect drillable visuals**: Power BI — right-click context menu shows "Drill through", or hierarchy drill arrows in the visual header; Tableau — hierarchy expand (+) icons on axes, or dashboard actions that navigate on click.
+2. For **one representative drill path per report** (the first drillable visual found):
+   - Capture the parent value first (e.g. `Sales / Region East = 1.2M`).
+   - Drill one level down on **both** platforms (click the same category).
+   - Extract the child breakdown values on both sides (tooltips/labels, same rules as Phase 1-2).
+   - Verify the children **sum to the parent** (within the numeric bands) and compare child-by-child via `compare_values`, labels like `"East → New York · Sales"`.
+   - Navigate back / drill up on both platforms.
+3. Package as a `VisualComparison` titled `"Drill-through: <visual> → <level>"` and include it in the report's `comparisons`.
+4. If drill exists on one platform but not the other, record a single FAIL value "Drill path missing in <platform>".
+
+**Budget**: 1 drill path per run (2 if the first one passes in under a minute). Deeper coverage belongs to a dedicated run.
 
 ### Phase 5: Take Screenshots
 
@@ -699,29 +728,33 @@ If any check is ❌ FAIL:
 
 ### Regression Tracking
 
-After every run, append results to `harness-log.json` in the workspace:
+After every run, call the **`record_validation_run`** tool (migration-validation MCP server) with:
+
 ```json
 {
-  "timestamp": "2026-07-09T14:30:00Z",
-  "tableauUrl": "[url]",
-  "powerBiUrl": "[url]",
-  "visualsFound": 5,
-  "visualsReported": 5,
+  "tableau_url": "[url]",
+  "powerbi_url": "[url]",
+  "total_visuals": 5,
+  "passed": 4,
+  "warnings": 1,
+  "failed": 0,
+  "pass_rate_pct": 100.0,
   "checks": {
     "completeness": "PASS",
-    "noBannedPhrases": "PASS",
-    "scrollProof": "PASS",
-    "hoverProof": "FAIL",
+    "no_banned_phrases": "PASS",
+    "scroll_proof": "PASS",
+    "hover_proof": "FAIL",
     "screenshots": "PASS",
     "variance": "PASS",
-    "bothColumns": "PASS"
+    "both_columns": "PASS"
   },
-  "score": "6/7",
   "duration": "4m 32s",
-  "incompleteItems": ["Pie chart hover failed after 2 retries"]
+  "incomplete_items": ["Pie chart hover failed after 2 retries"],
+  "report_path": "validation-reports/Validation_Report_....md"
 }
 ```
-Use `run_in_terminal` to append (not overwrite) to this file after each run. This builds a history of agent reliability over time.
+
+It appends to `harness-log.json` deterministically and returns the harness score plus cumulative statistics. Do NOT write to `harness-log.json` via terminal commands.
 
 ### Timing Budget
 
@@ -749,7 +782,7 @@ CHECK 8 (Hallucination):   ✅ PASS — spot-checked 2 values, both confirmed in
 
 ### Score Tracking Across Runs
 
-At the end of harness output, print cumulative stats from `harness-log.json`:
+The cumulative stats come back from `record_validation_run` (or on demand via `get_validation_history`). At the end of the harness output, print them:
 ```
 ═══ CUMULATIVE SCORE ═══
 Total Runs: 12

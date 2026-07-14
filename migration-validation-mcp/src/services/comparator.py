@@ -5,7 +5,8 @@ This module owns the rules for deciding whether two such strings *mean* the
 same thing, so the judgement is consistent across runs instead of being
 re-derived by the model every time:
 
-* numbers      — pass if relative difference <= ``numeric_tolerance_pct``
+* numbers      — banded on relative variance: <= ``numeric_pass_pct`` PASS,
+                 <= ``numeric_warning_pct`` WARNING, above FAIL
 * percentages  — pass if absolute difference <= ``percentage_tolerance_points``
 * dates        — pass if they normalise to the same calendar date
 * text         — case-insensitive, whitespace-collapsed equality
@@ -91,13 +92,17 @@ class ValueComparator:
 
     def __init__(
         self,
-        numeric_tolerance_pct: float | None = None,
+        numeric_pass_pct: float | None = None,
+        numeric_warning_pct: float | None = None,
         percentage_tolerance_points: float | None = None,
     ) -> None:
-        self.numeric_tolerance_pct = (
-            settings.numeric_tolerance_pct
-            if numeric_tolerance_pct is None
-            else numeric_tolerance_pct
+        self.numeric_pass_pct = (
+            settings.numeric_pass_pct if numeric_pass_pct is None else numeric_pass_pct
+        )
+        self.numeric_warning_pct = (
+            settings.numeric_warning_pct
+            if numeric_warning_pct is None
+            else numeric_warning_pct
         )
         self.percentage_tolerance_points = (
             settings.percentage_tolerance_points
@@ -219,10 +224,13 @@ class ValueComparator:
                 return ComparisonStatus.PASS, 0.0, ""
             return ComparisonStatus.FAIL, None, "Zero vs non-zero"
 
-        variance_pct = round(100 * difference / abs(tableau.value), 2)
-        if abs(variance_pct) <= self.numeric_tolerance_pct:
-            return ComparisonStatus.PASS, variance_pct, ""
-        return ComparisonStatus.FAIL, variance_pct, "Value mismatch"
+        variance_pct = 100 * difference / abs(tableau.value)
+        rounded = round(variance_pct, 2)
+        if abs(variance_pct) <= self.numeric_pass_pct:
+            return ComparisonStatus.PASS, rounded, ""
+        if abs(variance_pct) <= self.numeric_warning_pct:
+            return ComparisonStatus.WARNING, rounded, "Within warning band"
+        return ComparisonStatus.FAIL, rounded, "Value mismatch"
 
 
 def _display_label(point: DataPoint) -> str:

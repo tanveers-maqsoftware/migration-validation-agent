@@ -333,7 +333,7 @@ For each matched pair, the comparison rules are:
 
 | Data Type | Rule |
 |-----------|------|
-| Numbers | `abs(a - b) / max(abs(a), abs(b)) <= 0.01` |
+| Numbers | 0% variance = Pass, ≤0.5% = Warning, >0.5% = Fail (bands configurable via `.env`) |
 | Percentages | `abs(a - b) <= 1.0` percentage point |
 | Text/Labels | Case-insensitive exact match |
 | Dates | Normalize format then compare |
@@ -346,9 +346,24 @@ For each matched pair, the comparison rules are:
 - Remove thousands separators
 - Trim whitespace
 
+### Step 7b: Filter Validation (when filters/slicers exist on both platforms)
+
+For each filter that exists on both platforms (max 5 filters, first 2 values each, one at a time):
+1. Apply the same filter value on both platforms (`browser_click` the slicer item, wait for re-render).
+2. Re-read the 1-3 most prominent affected values (KPI cards first).
+3. Compare via `compare_values` with labels like `"Year=2011 · Total Sales"`.
+4. Reset both filters before the next one.
+5. Include results as a `VisualComparison` titled `"Filter check: <Filter>"` in the report's comparisons. A filter missing on one platform = one FAIL value.
+
+### Step 7c: Drill-through Validation (when drill paths exist)
+
+For one representative drillable visual: capture the parent value, drill one level down on both platforms, compare child values via `compare_values` (labels like `"East → New York · Sales"`), verify children sum to the parent, drill back up. Include as `VisualComparison` titled `"Drill-through: <visual> → <level>"`. A drill path missing on one platform = one FAIL value.
+
 ### Step 8: Generate Report
 
 **Preferred:** call `generate_validation_report` (migration-validation MCP server) with both URLs and the list of visual comparisons — it writes a timestamped Markdown report into `validation-reports/` and returns the path plus summary.
+
+After the report is written, call `record_validation_run` with the summary counts so the run lands in `harness-log.json`; it returns cumulative statistics across all runs (also available anytime via `get_validation_history`).
 
 The report contains:
 - Dashboard name

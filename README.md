@@ -25,7 +25,7 @@ There is no Python `main()` that takes the URLs. The starting point is a
 |------|------|-------|
 | **Agent playbook** (markdown) | The methodology: how to find visuals, hover for tooltips, scroll tables, match visuals across platforms | `.github/agents/`, `.claude/skills/` |
 | **Playwright MCP** (official, `npx @playwright/mcp`) | The browser "hands": `browser_navigate`, `browser_snapshot`, `browser_hover`, `browser_click`, `browser_evaluate`, `browser_take_screenshot`, … | registered in `.mcp.json` — no code in this repo |
-| **migration-validation MCP** (Python) | Deterministic domain tools: `compare_values`, `compare_visuals`, `generate_validation_report`, `health_check` | [migration-validation-mcp/](migration-validation-mcp/) |
+| **migration-validation MCP** (Python) | Deterministic domain tools: `compare_values`, `compare_visuals`, `generate_validation_report`, `record_validation_run`, `get_validation_history`, `health_check` | [migration-validation-mcp/](migration-validation-mcp/) |
 
 The LLM agent orchestrates: it reads the playbook and calls tools from both
 MCP servers one step at a time. Browser automation is deliberately **not**
