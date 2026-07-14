@@ -1,15 +1,17 @@
 """Interactive one-time sign-in to capture an authenticated browser session.
 
 Private Power BI reports (``app.powerbi.com/groups/...``) and Tableau Server
-sit behind a login wall. Run this ONCE on a machine with a display:
+sit behind a login wall. Run this ONCE on a machine with a display, from the
+``migration-validation-mcp`` directory:
 
-    uv run python authenticate.py
+    uv run python scripts/authenticate.py
 
 A real Chromium window opens. Sign in to Power BI (and Tableau Server if you
 need it), navigate until you can actually see your report content, then return
 to this terminal and press Enter. The session (cookies + localStorage) is saved
-to ``auth-state.json`` and reused automatically by the MCP server on later runs,
-so validation runs no longer hit the sign-in page.
+to ``auth-state.json`` and passed to the Playwright MCP server via its
+``--storage-state`` flag (see ``.mcp.json``), so validation runs no longer hit
+the sign-in page.
 
 Re-run this whenever the saved session expires (you'll see the login wall again).
 """
@@ -41,9 +43,9 @@ async def main() -> None:
         print("=" * 64)
         input("\n Press Enter once you are signed in and can see the report... ")
 
-        await context.storage_state(path=settings.AUTH_STATE_PATH)
-        print(f"\n Saved authenticated session to '{settings.AUTH_STATE_PATH}'.")
-        print(" The MCP server will now load private reports without a login wall.")
+        await context.storage_state(path=str(settings.auth_state_path))
+        print(f"\n Saved authenticated session to '{settings.auth_state_path}'.")
+        print(" Playwright MCP will now load private reports without a login wall.")
 
         await browser.close()
 

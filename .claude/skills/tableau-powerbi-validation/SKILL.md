@@ -327,7 +327,9 @@ Record unmatched visuals separately.
 
 ### Step 7: Compare Values
 
-For each matched pair, apply comparison rules:
+**Preferred:** call the `compare_values` or `compare_visuals` tools from the **migration-validation** MCP server with the raw rendered strings — they apply the rules below deterministically and return pass/warning/fail with variance %. Only apply the rules manually if those tools are unavailable.
+
+For each matched pair, the comparison rules are:
 
 | Data Type | Rule |
 |-----------|------|
@@ -346,7 +348,9 @@ For each matched pair, apply comparison rules:
 
 ### Step 8: Generate Report
 
-Output structured validation report with:
+**Preferred:** call `generate_validation_report` (migration-validation MCP server) with both URLs and the list of visual comparisons — it writes a timestamped Markdown report into `validation-reports/` and returns the path plus summary.
+
+The report contains:
 - Dashboard name
 - Total visuals checked
 - Pass/Fail counts

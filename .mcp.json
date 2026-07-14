@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--viewport-size=1920x1080",
+        "--output-dir=validation-screenshots"
+      ]
+    },
+    "migration-validation": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "migration-validation-mcp",
+        "migration-validation-mcp"
+      ]
+    }
+  }
+}

@@ -1,34 +1,30 @@
+"""Application settings, overridable via environment variables or ``.env``.
+
+Example: setting ``NUMERIC_TOLERANCE_PCT=0.5`` in ``.env`` tightens the
+numeric comparison tolerance without touching code.
+"""
+
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "Migration Validation MCP"
+    app_name: str = "Migration Validation MCP"
 
-    # Tableau configuration
-    TABLEAU_SERVER: str = ""
-    TABLEAU_PAT_NAME: str = ""
-    TABLEAU_PAT_SECRET: str = ""
-    TABLEAU_URL: str = ""  # URL of the Tableau report to validate
+    # Where MarkdownReportBuilder writes validation reports.
+    reports_dir: Path = Path("validation-reports")
 
-    # Power BI configuration
-    POWERBI_TENANT_ID: str = ""
-    POWERBI_CLIENT_ID: str = ""
-    POWERBI_CLIENT_SECRET: str = ""
-    POWERBI_URL: str = ""  # URL of the Power BI report to validate
+    # Saved Playwright session (cookies + localStorage) captured by
+    # scripts/authenticate.py and passed to Playwright MCP via --storage-state
+    # so private reports open without a login wall.
+    auth_state_path: Path = Path("auth-state.json")
 
-    # Playwright configuration
-    PLAYWRIGHT_HEADLESS: bool = True
-    PLAYWRIGHT_MCP_URL: str = ""  # URL for Playwright MCP server connection (optional)
-    AUTH_STATE_PATH: str = "auth-state.json"  # Saved Playwright session (cookies + localStorage) for signed-in reports
+    # Comparison tolerances (see src/services/comparator.py).
+    numeric_tolerance_pct: float = 1.0
+    percentage_tolerance_points: float = 1.0
 
-    # Output directories
-    SCREENSHOTS_DIR: str = "validation-screenshots"
-    REPORTS_DIR: str = "validation-reports"
-
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()

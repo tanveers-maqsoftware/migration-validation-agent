@@ -1,0 +1,23 @@
+{
+  "servers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--viewport-size=1920x1080",
+        "--output-dir=validation-screenshots"
+      ]
+    },
+    "migration-validation": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "migration-validation-mcp",
+        "migration-validation-mcp"
+      ]
+    }
+  }
+}

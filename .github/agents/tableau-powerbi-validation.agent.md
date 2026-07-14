@@ -1,6 +1,6 @@
 ---
 description: "Compares Tableau and Power BI reports by opening report URLs in a browser and validating visible rendered values. Use when: validating migration accuracy between Tableau and Power BI dashboards, comparing KPI cards, tables, matrices, bar charts, line charts, pie charts, filters, legends, axis labels, and tooltip values across both platforms."
-tools: [browser_navigate, browser_snapshot, browser_hover, browser_click, browser_evaluate, browser_wait_for, browser_take_screenshot, browser_close, run_in_terminal, create_file]
+tools: [browser_navigate, browser_snapshot, browser_hover, browser_click, browser_evaluate, browser_wait_for, browser_take_screenshot, browser_close, compare_values, compare_visuals, generate_validation_report, run_in_terminal, create_file]
 ---
 
 > **FULLY AUTONOMOUS — ZERO USER INTERACTION**
@@ -22,7 +22,9 @@ tools: [browser_navigate, browser_snapshot, browser_hover, browser_click, browse
 > - If a login page appears, report it in the doc and continue with what's accessible
 > - Auto-approve ALL tool calls (browser actions, file creation, terminal commands)
 >
-> **OUTPUT: Word Document** — Produce `Validation_Report.doc` in the workspace with all results and screenshots embedded.
+> **OUTPUT: Markdown Report** — Produce a validation report in `validation-reports/` (via the `generate_validation_report` tool) with all results and screenshot references.
+>
+> **TOOLS:** Browser actions come from the official **Playwright MCP** server (`browser_*` tools). Value comparison and report generation come from the **migration-validation** MCP server (`compare_values`, `compare_visuals`, `generate_validation_report`) — use those instead of doing tolerance math or composing the report by hand.
 
 # TableauPowerBIValidationAgent
 
@@ -534,6 +536,8 @@ Missed Visuals (could not extract):
 | Table cell values | DOM text content | Numeric tolerance for numbers, exact for text |
 | Axis labels | Same labels present (order-independent) |
 
+> **Use the `compare_values` / `compare_visuals` tools** (migration-validation MCP server) for every comparison — pass the raw rendered strings (e.g. "$1.2M", "45.3%") and the tools apply the tolerance rules above deterministically, returning pass/warning/fail with variance %. Do NOT compute tolerances yourself.
+
 **Step 4: If a Power BI visual has NO matching Tableau visual across any tab, mark it as "Unmatched" but still include it in the output.**
 
 ### Phase 5: Take Screenshots
@@ -545,18 +549,15 @@ For EACH visual on both platforms, take a screenshot:
    - Naming: `pbi_visual_1.png`, `pbi_visual_2.png`, `tableau_visual_1.png`, `tableau_visual_2.png`, etc.
 
 ### How to save screenshots:
-Use `browser_take_screenshot` which returns base64 image data. Then use `run_in_terminal` with PowerShell to save:
-```powershell
-[System.IO.File]::WriteAllBytes("validation-screenshots/pbi_visual_1.png", [Convert]::FromBase64String("BASE64_DATA_HERE"))
-```
+Pass a `filename` to `browser_take_screenshot` (e.g. `pbi_visual_1.png`). The Playwright MCP server is configured with `--output-dir=validation-screenshots`, so files land there automatically — no manual base64 handling.
 
-### Phase 6: Generate Validation_Report.md
+### Phase 6: Generate the Validation Report
 
-**Create a clean, concise markdown file at: `Validation_Report.md`**
+**Call `generate_validation_report`** (migration-validation MCP server) with the Tableau URL, Power BI URL, and the list of `VisualComparison` objects returned by `compare_visuals`. It writes a timestamped Markdown report into `validation-reports/` and returns the path plus summary counts.
 
-Use `create_file` to create it. The report must be simple and scannable.
+Only if that tool is unavailable, fall back to `create_file` with this format:
 
-**EXACT FORMAT:**
+**EXACT FORMAT (fallback only):**
 
 ```markdown
 # Validation Report

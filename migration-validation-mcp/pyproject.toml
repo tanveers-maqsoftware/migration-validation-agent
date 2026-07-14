@@ -1,28 +1,27 @@
 [project]
 name = "migration-validation-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "MCP server with domain tools (value comparison, report generation) for validating Tableau to Power BI dashboard migrations"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "httpx>=0.28.1",
     "loguru>=0.7.3",
     "mcp>=1.28.1",
-    "numpy>=2.5.1",
-    "opencv-python>=5.0.0.93",
-    "openpyxl>=3.1.5",
-    "pandas>=3.0.3",
-    "pillow>=12.3.0",
     "playwright>=1.61.0",
-    "playwright-mcp>=0.0.1",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.2",
-    "python-docx>=1.1.0",
-    "python-dotenv>=1.2.2",
 ]
 
 [project.scripts]
 migration-validation-mcp = "src.server:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# The package is the src/ directory itself (imported as `src.*`).
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
 
 [dependency-groups]
 dev = [
@@ -32,3 +31,10 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "ruff>=0.15.20",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
