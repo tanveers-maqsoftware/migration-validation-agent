@@ -13,7 +13,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field, computed_field
 
-from src.models.visual import VisualType
+from migration_validation.models.visual import VisualType
 
 
 class ComparisonStatus(StrEnum):

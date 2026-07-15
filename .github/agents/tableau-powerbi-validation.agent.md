@@ -11,7 +11,7 @@ tools: [browser_navigate, browser_snapshot, browser_hover, browser_click, browse
 > - Extracts all visuals
 > - Takes all screenshots
 > - Compares data
-> - Creates the Word document
+> - Calls `generate_validation_report` — ALWAYS, even on total failure (see below)
 >
 > **RULES:**
 > - NEVER ask the user a question
@@ -21,6 +21,7 @@ tools: [browser_navigate, browser_snapshot, browser_hover, browser_click, browse
 > - If something fails, retry or skip it — do NOT ask the user what to do
 > - **ONE exception — MFA approval**: an Authenticator prompt physically requires the user's phone. Follow the "Authentication Gate" section: surface the approval number immediately, poll bounded, then stop that platform and report. Never type credentials, never wait silently, never wait unbounded.
 > - Auto-approve ALL tool calls (browser actions, file creation, terminal commands)
+> - **A turn is not finished until `generate_validation_report` has been called successfully** — not "extraction is done," not "I found the problem," not "I'm waiting on MFA." Even zero successful comparisons still gets written as a report explaining why.
 >
 > **OUTPUT: Markdown Report** — Produce a validation report in `validation-reports/` (via the `generate_validation_report` tool) with all results and screenshot references.
 >
@@ -55,6 +56,8 @@ Private reports (Power BI `app.powerbi.com/groups/...`, Tableau Server/Cloud) si
    uv run python scripts/authenticate.py
    ```
    then reload the window (so the Playwright MCP server picks up the refreshed `auth-state.json`) and re-run the validation.
+
+> **NON-NEGOTIABLE: call `generate_validation_report` no matter what happened above.** Full success, partial extraction, or a total authentication failure on BOTH platforms — you must still call it before ending your turn. If a platform failed auth, its only comparison entry can be a single `VisualComparison` titled `"Authentication Status: <platform>"` with one FAIL value explaining the blocker (e.g. `"MFA approval not received within 2 minutes"`). Zero comparisons is still a valid report. **A run that ends without a report is a failed run, even if the reason was authentication, not extraction.**
 
 This applies to **both** platforms: client Tableau reports live on Tableau Server/Cloud and need sign-in exactly like Power BI — only Tableau Public is login-free.
 
@@ -295,6 +298,10 @@ POWER BI:
 - [ ] Validation time recorded?
 
 ## Workflow
+
+### Phase 0: Establish a Run ID (do this FIRST, before any navigation)
+
+Generate a `RUN_ID` once — `YYYYMMDD_HHMMSS` from the current time — and prefix **every** screenshot filename with it for the rest of this run: `{RUN_ID}_tableau_visual_1.png`, `{RUN_ID}_pbi_visual_1.png`, etc. **Never reuse a static filename like `tableau-full.png` across runs** — a later run's screenshot silently overwrites an earlier run's file, which corrupts the image links in that earlier run's already-generated report (the file still exists at the same path, but now shows the wrong run's content). The `RUN_ID` prefix is what actually makes each run's evidence immutable.
 
 ### Phase 1: Extract Tableau Visuals
 
@@ -594,13 +601,13 @@ If a filter exists on only one platform, add a `VisualComparison` titled `"Filte
 ### Phase 5: Take Screenshots
 
 For EACH visual on both platforms, take a screenshot:
-1. In Power BI: Click/hover the visual to highlight it, then use `browser_take_screenshot` 
+1. In Power BI: Click/hover the visual to highlight it, then use `browser_take_screenshot`
 2. In Tableau: Click/hover the matching visual, then use `browser_take_screenshot`
 3. Save screenshots to workspace folder: `validation-screenshots/`
-   - Naming: `pbi_visual_1.png`, `pbi_visual_2.png`, `tableau_visual_1.png`, `tableau_visual_2.png`, etc.
+   - Naming: `{RUN_ID}_pbi_visual_1.png`, `{RUN_ID}_pbi_visual_2.png`, `{RUN_ID}_tableau_visual_1.png`, `{RUN_ID}_tableau_visual_2.png`, etc. — using the `RUN_ID` from Phase 0.
 
 ### How to save screenshots:
-Pass a `filename` to `browser_take_screenshot` (e.g. `pbi_visual_1.png`). The Playwright MCP server is configured with `--output-dir=validation-screenshots`, so files land there automatically — no manual base64 handling.
+Pass a `filename` to `browser_take_screenshot` (e.g. `{RUN_ID}_pbi_visual_1.png`). The Playwright MCP server is configured with `--output-dir=validation-screenshots`, so files land there automatically — no manual base64 handling. **Always include the `RUN_ID` prefix** — this is what stops a later run from overwriting an earlier run's screenshots.
 
 ### Phase 6: Generate the Validation Report
 
@@ -635,7 +642,7 @@ Only if that tool is unavailable, fall back to `create_file` with this format:
 
 | Power BI | Tableau | | |
 |---|---|---|---|
-| ![PBI](validation-screenshots/pbi_visual_1.png) | ![Tableau](validation-screenshots/tableau_visual_1.png) | | |
+| ![PBI](validation-screenshots/{RUN_ID}_pbi_visual_1.png) | ![Tableau](validation-screenshots/{RUN_ID}_tableau_visual_1.png) | | |
 
 | Category | Power BI | Tableau | Variance % | Reason |
 |----------|----------|---------|------------|--------|
@@ -651,7 +658,7 @@ Only if that tool is unavailable, fall back to `create_file` with this format:
 
 | Power BI | Tableau | | |
 |---|---|---|---|
-| ![PBI](validation-screenshots/pbi_visual_2.png) | ![Tableau](validation-screenshots/tableau_visual_2.png) | | |
+| ![PBI](validation-screenshots/{RUN_ID}_pbi_visual_2.png) | ![Tableau](validation-screenshots/{RUN_ID}_tableau_visual_2.png) | | |
 
 | Category | Power BI | Tableau | Variance % | Reason |
 |----------|----------|---------|------------|--------|

@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.models import ComparisonStatus, DataPoint, Platform, Visual, VisualType
-from src.services.comparator import ValueComparator, parse_number
+from migration_validation.models import ComparisonStatus, DataPoint, Platform, Visual, VisualType
+from migration_validation.services.comparator import ValueComparator, parse_number
 
 
 @pytest.fixture

@@ -2,6 +2,9 @@
 .env
 auth-state.json
 
+# Personal, machine-local tool settings (permissions, etc.) — not shared config
+.claude/settings.local.json
+
 # Python
 __pycache__/
 *.py[cod]

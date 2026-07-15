@@ -110,7 +110,7 @@ per-machine, per-person** step:
 
 2. **Restart the MCP servers** (reload the VS Code window / restart Claude
    Code). That's it — no config editing. The shared configs launch Playwright
-   through [scripts/run-playwright-mcp.mjs](scripts/run-playwright-mcp.mjs),
+   through [migration-validation-mcp/scripts/run_playwright_mcp.py](migration-validation-mcp/scripts/run_playwright_mcp.py),
    which passes `--storage-state=migration-validation-mcp/auth-state.json`
    automatically. On machines that never ran `authenticate.py`, the wrapper
    writes an *empty* placeholder session, so fresh clones keep working for
@@ -160,12 +160,12 @@ npx @modelcontextprotocol/inspector npx @playwright/mcp@latest --browser=msedge
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `ENOENT ... auth-state.json` at startup | Playwright MCP was launched directly with `--storage-state` instead of through the wrapper | Make sure the `playwright` server in `.mcp.json`/`.vscode/mcp.json` runs `node scripts/run-playwright-mcp.mjs` — the wrapper creates a placeholder session file when none exists |
-| Screenshots don't render in the `.md` report | Playwright MCP and the Python server were launched with different working directories, so relative image paths don't resolve | Confirm `--output-dir=migration-validation-mcp/validation-screenshots` in `scripts/run-playwright-mcp.mjs` (already fixed in this repo) |
+| `ENOENT ... auth-state.json` at startup | Playwright MCP was launched directly with `--storage-state` instead of through the wrapper | Make sure the `playwright` server in `.mcp.json`/`.vscode/mcp.json` runs `uv run python migration-validation-mcp/scripts/run_playwright_mcp.py` — the wrapper creates a placeholder session file when none exists |
+| Screenshots don't render in the `.md` report | Playwright MCP and the Python server were launched with different working directories, so relative image paths don't resolve | Confirm `--output-dir=migration-validation-mcp/validation-screenshots` in `migration-validation-mcp/scripts/run_playwright_mcp.py` (already fixed in this repo) |
 | VS Code Copilot Chat: *"No utility model is configured for 'copilot-utility-small' while the selected main agent model is BYOK"* | Your main chat model is a custom/BYOK provider (e.g. an internal org gateway); Copilot Chat also needs a small "utility model" mapped for internal tasks, and none is set | Configure a utility model via Command Palette → "GitHub Copilot: Manage Models", or ask whoever administers your org's BYOK provider. Unrelated to this repo — Claude Code doesn't need this at all |
 | MCP Inspector: `-32602 Invalid request parameters` on a nested-object tool (e.g. `compare_visuals`) | A client-side form-assembly quirk in the Inspector UI for deeply nested JSON, not a server bug | Click **Switch to JSON** on the *entire* field again to force a resync, or use **Copy Input** to see exactly what was about to be sent |
-| Power BI or Tableau report shows a sign-in page mid-run | No session captured yet, or the captured session expired | Run `scripts/authenticate.py` again (see above), then restart the MCP servers |
-| Agent stalls on "Approve sign in" / Authenticator number prompt during a run | Same as above — the agent fell through to interactive MFA | Approve within 2 minutes if you can (no push? open Authenticator manually and pull to refresh); otherwise let the run finish, then run `scripts/authenticate.py` and re-run the validation |
+| Power BI or Tableau report shows a sign-in page mid-run | No session captured yet, or the captured session expired | Run `migration-validation-mcp/scripts/authenticate.py` again (see above), then restart the MCP servers |
+| Agent stalls on "Approve sign in" / Authenticator number prompt during a run | Same as above — the agent fell through to interactive MFA | Approve within 2 minutes if you can (no push? open Authenticator manually and pull to refresh); otherwise let the run finish, then run `migration-validation-mcp/scripts/authenticate.py` and re-run the validation |
 | Most visuals report "Unmatched" | The two report URLs aren't actually a migrated pair (different content) | Expected — use a real before/after pair for a meaningful accuracy result |
 
 ---
@@ -182,8 +182,7 @@ The LLM agent orchestrates: it reads the playbook and calls tools from both
 MCP servers one step at a time. Browser automation is deliberately **not**
 implemented in this repo — the official Playwright MCP server does it better.
 
-See [migration-validation-mcp/ARCHITECTURE.md](migration-validation-mcp/ARCHITECTURE.md)
-for the full runtime flow, comparison rules, and design decisions.
+See [HLD.md](HLD.md) for the full runtime flow, comparison rules, and design decisions.
 
 ## Repository layout
 
@@ -191,7 +190,9 @@ for the full runtime flow, comparison rules, and design decisions.
 ├── .mcp.json                  # MCP servers for Claude Code
 ├── .vscode/mcp.json           # MCP servers for VS Code
 ├── .github/agents/            # VS Code custom agent playbook
+├── .github/workflows/         # CI — tests + lint on every push/PR
 ├── .claude/skills/            # Claude Code skill (same methodology)
-├── scripts/                   # run-playwright-mcp.mjs — launches Playwright MCP with auth session
+├── HLD.md                     # high-level design: architecture, runtime flow, comparison rules
 └── migration-validation-mcp/  # Python MCP server (domain tools) — see its README
+                                #   scripts/ — authenticate.py + run_playwright_mcp.py
 ```

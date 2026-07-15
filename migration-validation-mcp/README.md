@@ -19,9 +19,11 @@ server only owns what Playwright cannot: the validation rules.
 ## Layout
 
 ```
-├── main.py                    # entry point → src/server.py
-├── scripts/authenticate.py    # one-time login capture → auth-state.json
-├── src/
+├── main.py                    # entry point → migration_validation/server.py
+├── scripts/
+│   ├── authenticate.py        # one-time login capture → auth-state.json
+│   └── run_playwright_mcp.py  # launches Playwright MCP with the captured session attached
+├── migration_validation/
 │   ├── server.py              # MCP protocol wiring (list_tools / call_tool)
 │   ├── config/                # settings (env/.env driven) + logging
 │   ├── models/                # Pydantic domain models
@@ -48,8 +50,12 @@ handler signatures cannot drift apart.
 ```bash
 uv sync                 # install deps
 uv run pytest           # run unit tests
+uv run ruff check .     # lint (same check CI runs on every push)
 uv run migration-validation-mcp   # start the server (stdio) manually
 ```
 
 Configuration is environment-driven — copy `.env.example` to `.env` to
 override tolerances or output directories.
+
+CI runs both `pytest` and `ruff` on every push/PR — see
+[`../.github/workflows/ci.yml`](../.github/workflows/ci.yml).

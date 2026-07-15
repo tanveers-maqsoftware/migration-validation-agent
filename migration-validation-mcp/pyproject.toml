@@ -13,15 +13,14 @@ dependencies = [
 ]
 
 [project.scripts]
-migration-validation-mcp = "src.server:run"
+migration-validation-mcp = "migration_validation.server:run"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-# The package is the src/ directory itself (imported as `src.*`).
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["migration_validation"]
 
 [dependency-groups]
 dev = [

@@ -2,9 +2,11 @@
   "servers": {
     "playwright": {
       "type": "stdio",
-      "command": "node",
+      "command": "uv",
       "args": [
-        "scripts/run-playwright-mcp.mjs"
+        "run",
+        "python",
+        "migration-validation-mcp/scripts/run_playwright_mcp.py"
       ]
     },
     "migration-validation": {

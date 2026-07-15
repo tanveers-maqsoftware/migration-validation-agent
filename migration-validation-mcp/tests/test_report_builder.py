@@ -2,14 +2,14 @@
 
 from pathlib import Path
 
-from src.models import (
+from migration_validation.models import (
     ComparisonStatus,
     ValidationReport,
     ValueComparison,
     VisualComparison,
     VisualType,
 )
-from src.services.report_builder import MarkdownReportBuilder
+from migration_validation.services.report_builder import MarkdownReportBuilder
 
 
 def _sample_report() -> ValidationReport:

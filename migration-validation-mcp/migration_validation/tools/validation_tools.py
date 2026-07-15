@@ -11,12 +11,12 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from src.config.settings import settings
-from src.models import ValidationReport, Visual, VisualComparison
-from src.models.history import ValidationRunRecord
-from src.services.comparator import ValueComparator
-from src.services.report_builder import MarkdownReportBuilder
-from src.services.run_history import RunHistoryService
+from migration_validation.config.settings import settings
+from migration_validation.models import ValidationReport, Visual, VisualComparison
+from migration_validation.models.history import ValidationRunRecord
+from migration_validation.services.comparator import ValueComparator
+from migration_validation.services.report_builder import MarkdownReportBuilder
+from migration_validation.services.run_history import RunHistoryService
 
 
 # -- tool inputs (their JSON schemas are what the agent sees) ----------------

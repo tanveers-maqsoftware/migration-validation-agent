@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Test and lint (migration-validation-mcp)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: migration-validation-mcp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: migration-validation-mcp/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Run tests
+        run: uv run pytest -v
+
+      - name: Lint
+        run: uv run ruff check .
