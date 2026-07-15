@@ -182,8 +182,7 @@ The LLM agent orchestrates: it reads the playbook and calls tools from both
 MCP servers one step at a time. Browser automation is deliberately **not**
 implemented in this repo — the official Playwright MCP server does it better.
 
-See [migration-validation-mcp/ARCHITECTURE.md](migration-validation-mcp/ARCHITECTURE.md)
-for the full runtime flow, comparison rules, and design decisions.
+See [HLD.md](HLD.md) for the full runtime flow, comparison rules, and design decisions.
 
 ## Repository layout
 
@@ -191,7 +190,9 @@ for the full runtime flow, comparison rules, and design decisions.
 ├── .mcp.json                  # MCP servers for Claude Code
 ├── .vscode/mcp.json           # MCP servers for VS Code
 ├── .github/agents/            # VS Code custom agent playbook
+├── .github/workflows/         # CI — tests + lint on every push/PR
 ├── .claude/skills/            # Claude Code skill (same methodology)
+├── HLD.md                     # high-level design: architecture, runtime flow, comparison rules
 └── migration-validation-mcp/  # Python MCP server (domain tools) — see its README
                                 #   scripts/ — authenticate.py + run_playwright_mcp.py
 ```

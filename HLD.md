@@ -1,4 +1,4 @@
-# Migration Validation Agent — Technical Architecture
+# Migration Validation Agent — High-Level Design (HLD)
 
 Validates **Tableau → Power BI** dashboard migrations by comparing what is *visibly
 rendered in the browser* on both platforms — not the underlying data model, DAX, or SQL.
@@ -10,7 +10,7 @@ The system has three cooperating layers:
 |-------|-----------|----------------|
 | **Orchestrator** | An LLM agent that reads a playbook and decides *what to do next* | `.github/agents/`, `.claude/skills/` (repo root) |
 | **Browser hands** | The **official Playwright MCP server** (`npx @playwright/mcp`) | registered in `.mcp.json` / `.vscode/mcp.json` — no code here |
-| **Domain tools** | This Python MCP server: deterministic comparison + report rendering | `migration_validation/` |
+| **Domain tools** | This Python MCP server: deterministic comparison + report rendering | `migration-validation-mcp/migration_validation/` |
 
 ## 1. Component architecture
 
@@ -24,10 +24,10 @@ flowchart TB
         PWTOOLS["browser_navigate · browser_snapshot · browser_hover<br/>browser_click · browser_evaluate · browser_wait_for<br/>browser_take_screenshot · browser_tabs · browser_close"]
     end
 
-    subgraph MCP["⚙️ migration-validation MCP (migration_validation/server.py)"]
+    subgraph MCP["⚙️ migration-validation MCP (migration-validation-mcp/migration_validation/server.py)"]
         TOOLS["compare_values · compare_visuals<br/>generate_validation_report · record_validation_run<br/>get_validation_history · health_check"]
-        SVC["ValueComparator · MarkdownReportBuilder · RunHistoryService<br/>(migration_validation/services/)"]
-        MODELS["Pydantic models<br/>(migration_validation/models/)"]
+        SVC["ValueComparator · MarkdownReportBuilder · RunHistoryService<br/>(migration-validation-mcp/migration_validation/services/)"]
+        MODELS["Pydantic models<br/>(migration-validation-mcp/migration_validation/models/)"]
     end
 
     BROWSER["Chromium<br/>Tableau page · Power BI page"]
@@ -70,7 +70,7 @@ sequenceDiagram
     Agent->>PW: browser_close
 ```
 
-## 3. Comparison rules (migration_validation/services/comparator.py)
+## 3. Comparison rules (migration-validation-mcp/migration_validation/services/comparator.py)
 
 | Value kind | Rule |
 |------------|------|
@@ -81,7 +81,7 @@ sequenceDiagram
 | Data point in Tableau only | **FAIL** (data lost in migration) |
 | Data point in Power BI only | **WARNING** (additional data, not a failure) |
 
-Tolerances are configurable via `.env` (see `.env.example`).
+Tolerances are configurable via `.env` (see `migration-validation-mcp/.env.example`).
 
 ## 4. Design rules
 
@@ -114,10 +114,10 @@ Beyond static visual comparison, the playbook exercises the reports:
   LLM; a `match_visuals` tool could make it deterministic too.
 - **Structured extraction:** the JS snippets for table scrolling and pie-tooltip
   sweeps still live in the playbook markdown.
-- **Auth:** `scripts/authenticate.py` captures a session and the shared MCP
-  configs pass it via `--storage-state` automatically (through
-  `scripts/run_playwright_mcp.py`, which writes an empty placeholder when no
-  session exists so fresh clones still start). Remaining
+- **Auth:** `migration-validation-mcp/scripts/authenticate.py` captures a session
+  and the shared MCP configs pass it via `--storage-state` automatically (through
+  `migration-validation-mcp/scripts/run_playwright_mcp.py`, which writes an empty
+  placeholder when no session exists so fresh clones still start). Remaining
   gap: a session that expires *mid-run* still needs the user to approve MFA
   on their phone — the playbook's Authentication Gate bounds that wait and
   surfaces the approval number instead of stalling.
@@ -130,4 +130,4 @@ Beyond static visual comparison, the playbook exercises the reports:
 
 - Playwright MCP: <https://github.com/microsoft/playwright-mcp>
 - VS Code custom agents: <https://code.visualstudio.com/docs/agent-customization/custom-agents>
-- Agent playbook: [`../.github/agents/tableau-powerbi-validation.agent.md`](../.github/agents/tableau-powerbi-validation.agent.md)
+- Agent playbook: [`.github/agents/tableau-powerbi-validation.agent.md`](.github/agents/tableau-powerbi-validation.agent.md)
