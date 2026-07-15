@@ -31,7 +31,7 @@ server only owns what Playwright cannot: the validation rules.
 │   │   ├── comparison.py      #   ValueComparison, VisualComparison, status
 │   │   ├── report.py          #   ValidationReport, ReportSummary
 │   │   └── history.py         #   ValidationRunRecord, RunHistoryStats
-│   ├── services/               # business logic (no MCP, no I/O with agent)
+│   ├── services/              # business logic (no MCP, no I/O with agent)
 │   │   ├── comparator.py      #   ValueComparator — the comparison bands
 │   │   ├── report_builder.py  #   MarkdownReportBuilder
 │   │   └── run_history.py     #   RunHistoryService — harness-log.json
@@ -50,8 +50,12 @@ handler signatures cannot drift apart.
 ```bash
 uv sync                 # install deps
 uv run pytest           # run unit tests
+uv run ruff check .     # lint (same check CI runs on every push)
 uv run migration-validation-mcp   # start the server (stdio) manually
 ```
 
 Configuration is environment-driven — copy `.env.example` to `.env` to
 override tolerances or output directories.
+
+CI runs both `pytest` and `ruff` on every push/PR — see
+[`../.github/workflows/ci.yml`](../.github/workflows/ci.yml).

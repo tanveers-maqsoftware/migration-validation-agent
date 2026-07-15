@@ -92,6 +92,9 @@ Tolerances are configurable via `.env` (see `migration-validation-mcp/.env.examp
   signature cannot drift apart.
 - **Errors never kill the stdio session:** tool failures are returned to the
   agent as `{"error": ...}` so it can retry or work around them.
+- **CI enforces both gates on every push/PR:** `.github/workflows/ci.yml` runs
+  `pytest` and `ruff check` — a change that breaks tests or lint fails the
+  build before it can be merged.
 
 ## 5. Validation coverage
 
@@ -125,6 +128,12 @@ Beyond static visual comparison, the playbook exercises the reports:
   semantic-model inspection via Tableau REST / Power BI XMLA) is deliberately
   out of scope while the "browser-rendered only" rule stands; if adopted, build
   it as a second validation mode, not into this agent.
+- **Playbook duplication:** `.claude/skills/tableau-powerbi-validation/SKILL.md`
+  and `.github/agents/tableau-powerbi-validation.agent.md` encode the same
+  methodology for two different hosts and are hand-synced — every phase change
+  has to be edited in both files, with no automated check that they haven't
+  drifted. A single source-of-truth body + a small generator (stamping out each
+  host's frontmatter) plus a CI diff-check would remove this risk; not yet built.
 
 ## References
 
