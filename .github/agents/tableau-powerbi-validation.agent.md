@@ -607,7 +607,7 @@ For EACH visual on both platforms, take a screenshot:
    - Naming: `{RUN_ID}_pbi_visual_1.png`, `{RUN_ID}_pbi_visual_2.png`, `{RUN_ID}_tableau_visual_1.png`, `{RUN_ID}_tableau_visual_2.png`, etc. — using the `RUN_ID` from Phase 0.
 
 ### How to save screenshots:
-Pass a `filename` to `browser_take_screenshot` (e.g. `{RUN_ID}_pbi_visual_1.png`). The Playwright MCP server is configured with `--output-dir=validation-screenshots`, so files land there automatically — no manual base64 handling. **Always include the `RUN_ID` prefix** — this is what stops a later run from overwriting an earlier run's screenshots.
+Pass ONLY a bare `filename` to `browser_take_screenshot` (e.g. `{RUN_ID}_pbi_visual_1.png`) — **never** prefix it with `validation-screenshots/`. The Playwright MCP server is configured with `--output-dir=migration-validation-mcp/validation-screenshots`, so files land there automatically — no manual base64 handling, and no need to specify the folder yourself. Adding the folder name to the filename makes Playwright save relative to the *repo root* instead. **Always include the `RUN_ID` prefix** — this is what stops a later run from overwriting an earlier run's screenshots.
 
 ### Phase 6: Generate the Validation Report
 

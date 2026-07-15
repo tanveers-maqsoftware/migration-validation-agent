@@ -54,12 +54,12 @@ Collect from the user:
    - Look for: `.tabWidget .tab`, `.tableau-tab`, `[role="tab"]`, `.storyPointCaption`
    - If tabs exist, iterate through EACH tab:
      a. Click tab → wait for load → screenshot → extract visuals
-     b. Save screenshots as `validation-screenshots/{RUN_ID}_tableau-page-1.png`, `{RUN_ID}_tableau-page-2.png`, etc.
+     b. Screenshot filenames: `{RUN_ID}_tableau-page-1.png`, `{RUN_ID}_tableau-page-2.png`, etc.
    - If no tabs, treat as single page
-5. Use `browser_take_screenshot` — save to `validation-screenshots/{RUN_ID}_tableau-full.png` (default page)
+5. Use `browser_take_screenshot` — filename `{RUN_ID}_tableau-full.png` (default page)
 6. Use `browser_snapshot` to read the accessibility tree
 
-> **All screenshots must be saved in a single folder: `validation-screenshots/`**
+> **Pass ONLY the bare filename to `browser_take_screenshot`** (e.g. `{RUN_ID}_tableau-full.png`) — **never** prefix it with `validation-screenshots/`. The Playwright MCP server is already configured with `--output-dir=migration-validation-mcp/validation-screenshots`, so it places every file there automatically. Adding the folder name yourself makes Playwright save relative to the *repo root* instead, scattering screenshots outside the correct folder.
 > **Track which page each visual belongs to for accurate cross-platform matching.**
 
 ### Step 3: Extract Tableau Visuals
@@ -194,7 +194,7 @@ async () => {
 1. Use `browser_navigate` to open the Power BI URL
 2. Use `browser_wait_for` to wait for `visual-container, .visualContainerHost` to be present
 3. Wait additional 3-5 seconds for all visuals to render
-4. Use `browser_take_screenshot` — save to `validation-screenshots/{RUN_ID}_powerbi-full.png`
+4. Use `browser_take_screenshot` — filename `{RUN_ID}_powerbi-full.png` (bare filename only — see the note in Step 2, same rule applies here)
 5. Use `browser_snapshot` to read the accessibility tree
 
 ### Step 5: Extract Power BI Visuals
