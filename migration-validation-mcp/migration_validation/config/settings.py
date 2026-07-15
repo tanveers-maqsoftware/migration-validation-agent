@@ -15,6 +15,14 @@ class Settings(BaseSettings):
     # Where MarkdownReportBuilder writes validation reports.
     reports_dir: Path = Path("validation-reports")
 
+    # Where Playwright MCP's --output-dir points. Screenshots are the only
+    # thing that belongs here, but other browser_* tools (console_messages,
+    # snapshot, network_request) also honor --output-dir if the agent passes
+    # them a filename — ScreenshotDirCleaner sweeps anything non-image out to
+    # debug_artifacts_dir so this folder stays screenshots-only.
+    screenshots_dir: Path = Path("validation-screenshots")
+    debug_artifacts_dir: Path = Path("playwright-debug")
+
     # Saved Playwright session (cookies + localStorage) captured by
     # scripts/authenticate.py and passed to Playwright MCP via --storage-state
     # so private reports open without a login wall.

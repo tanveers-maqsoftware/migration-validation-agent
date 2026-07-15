@@ -609,6 +609,8 @@ For EACH visual on both platforms, take a screenshot:
 ### How to save screenshots:
 Pass ONLY a bare `filename` to `browser_take_screenshot` (e.g. `{RUN_ID}_pbi_visual_1.png`) — **never** prefix it with `validation-screenshots/`. The Playwright MCP server is configured with `--output-dir=migration-validation-mcp/validation-screenshots`, so files land there automatically — no manual base64 handling, and no need to specify the folder yourself. Adding the folder name to the filename makes Playwright save relative to the *repo root* instead. **Always include the `RUN_ID` prefix** — this is what stops a later run from overwriting an earlier run's screenshots.
 
+**`validation-screenshots/` is screenshots ONLY.** Other tools (`browser_console_messages`, `browser_snapshot`, `browser_network_request`) also accept an optional `filename` that writes into the same `--output-dir` — **never pass `filename` to those tools.** Always let their output return inline in the response instead.
+
 ### Phase 6: Generate the Validation Report
 
 **Call `generate_validation_report`** (migration-validation MCP server) with the Tableau URL, Power BI URL, and the list of `VisualComparison` objects returned by `compare_visuals`. It writes a timestamped Markdown report into `validation-reports/` and returns the path plus summary counts.

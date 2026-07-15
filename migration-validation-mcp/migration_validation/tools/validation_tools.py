@@ -17,6 +17,7 @@ from migration_validation.models.history import ValidationRunRecord
 from migration_validation.services.comparator import ValueComparator
 from migration_validation.services.report_builder import MarkdownReportBuilder
 from migration_validation.services.run_history import RunHistoryService
+from migration_validation.services.screenshot_dir import ScreenshotDirCleaner
 
 
 # -- tool inputs (their JSON schemas are what the agent sees) ----------------
@@ -69,12 +70,16 @@ class ValidationToolbox:
         comparator: ValueComparator | None = None,
         report_builder: MarkdownReportBuilder | None = None,
         run_history: RunHistoryService | None = None,
+        screenshot_dir_cleaner: ScreenshotDirCleaner | None = None,
     ) -> None:
         self._comparator = comparator or ValueComparator()
         self._report_builder = report_builder or MarkdownReportBuilder(
             settings.reports_dir
         )
         self._run_history = run_history or RunHistoryService(settings.history_path)
+        self._screenshot_dir_cleaner = screenshot_dir_cleaner or ScreenshotDirCleaner(
+            settings.screenshots_dir, settings.debug_artifacts_dir
+        )
 
     async def health_check(self, _: EmptyInput) -> dict[str, Any]:
         return {
@@ -107,10 +112,14 @@ class ValidationToolbox:
             comparisons=args.comparisons,
         )
         path = self._report_builder.write(report, args.filename)
-        return {
+        moved = self._screenshot_dir_cleaner.sweep()
+        result = {
             "report_path": str(path),
             "summary": report.summary().model_dump(),
         }
+        if moved:
+            result["non_screenshot_files_relocated"] = moved
+        return result
 
     async def record_validation_run(self, args: RecordRunInput) -> dict[str, Any]:
         record = ValidationRunRecord.model_validate(args.model_dump())

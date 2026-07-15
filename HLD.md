@@ -95,6 +95,15 @@ Tolerances are configurable via `.env` (see `migration-validation-mcp/.env.examp
 - **CI enforces both gates on every push/PR:** `.github/workflows/ci.yml` runs
   `pytest` and `ruff check` — a change that breaks tests or lint fails the
   build before it can be merged.
+- **`validation-screenshots/` and `validation-reports/` are single-purpose,
+  guaranteed by code, not just by prompt.** `validation-reports/` is pure by
+  construction — only `MarkdownReportBuilder` writes there. Playwright MCP's
+  shared `--output-dir` means other browser tools *can* write into
+  `validation-screenshots/` too if the agent passes them a `filename` (the
+  playbook forbids this, but prose-only compliance has already failed once in
+  practice); `ScreenshotDirCleaner.sweep()` runs on every
+  `generate_validation_report` call and relocates anything non-image to
+  `playwright-debug/`, so the folder self-heals regardless of agent behavior.
 
 ## 5. Validation coverage
 

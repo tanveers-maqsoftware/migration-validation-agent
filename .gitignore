@@ -21,6 +21,10 @@ harness-log.json
 playwright-report/
 test-results/
 
+# Non-screenshot files (console logs, page snapshots) swept out of
+# validation-screenshots/ by ScreenshotDirCleaner — see migration_validation/services/screenshot_dir.py
+playwright-debug/
+
 # OS / editor noise
 .DS_Store
 Thumbs.db

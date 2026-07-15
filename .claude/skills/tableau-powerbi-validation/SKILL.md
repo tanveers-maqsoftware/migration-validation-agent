@@ -60,6 +60,7 @@ Collect from the user:
 6. Use `browser_snapshot` to read the accessibility tree
 
 > **Pass ONLY the bare filename to `browser_take_screenshot`** (e.g. `{RUN_ID}_tableau-full.png`) — **never** prefix it with `validation-screenshots/`. The Playwright MCP server is already configured with `--output-dir=migration-validation-mcp/validation-screenshots`, so it places every file there automatically. Adding the folder name yourself makes Playwright save relative to the *repo root* instead, scattering screenshots outside the correct folder.
+> **`validation-screenshots/` is screenshots ONLY.** Other tools (`browser_console_messages`, `browser_snapshot`, `browser_network_request`) also accept an optional `filename` that writes into the same `--output-dir` — **never pass `filename` to those tools.** Always let their output return inline in the response instead.
 > **Track which page each visual belongs to for accurate cross-platform matching.**
 
 ### Step 3: Extract Tableau Visuals
