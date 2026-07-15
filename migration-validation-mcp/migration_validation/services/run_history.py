@@ -10,7 +10,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from src.models.history import RunHistoryStats, ValidationRunRecord
+from migration_validation.models.history import RunHistoryStats, ValidationRunRecord
 
 
 class RunHistoryService:

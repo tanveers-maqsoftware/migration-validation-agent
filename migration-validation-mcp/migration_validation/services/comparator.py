@@ -15,8 +15,8 @@ re-derived by the model every time:
 import re
 from datetime import datetime
 
-from src.config.settings import settings
-from src.models import (
+from migration_validation.config.settings import settings
+from migration_validation.models import (
     ComparisonStatus,
     DataPoint,
     ValueComparison,

@@ -20,7 +20,7 @@ argument-hint: 'Provide Tableau URL and Power BI URL to compare'
 
 ## Authentication Gate (check after EVERY `browser_navigate`)
 
-Private reports (Power BI `app.powerbi.com/groups/...`, Tableau Server/Cloud — i.e. anything not on Tableau Public / "Publish to web") sit behind a login wall. A saved session normally carries you past it (captured by `migration-validation-mcp/scripts/authenticate.py`, wired in automatically via `scripts/run-playwright-mcp.mjs`), but sessions expire. After navigating to either report URL, check the page URL and title BEFORE extracting anything.
+Private reports (Power BI `app.powerbi.com/groups/...`, Tableau Server/Cloud — i.e. anything not on Tableau Public / "Publish to web") sit behind a login wall. A saved session normally carries you past it (captured by `migration-validation-mcp/scripts/authenticate.py`, wired in automatically via `migration-validation-mcp/scripts/run_playwright_mcp.py`), but sessions expire. After navigating to either report URL, check the page URL and title BEFORE extracting anything.
 
 **Signs you hit a login wall:** URL contains `login.microsoftonline.com`, page says "Sign in to your account" / "Approve sign in", Tableau URL redirects to a `/signin` page.
 
@@ -31,7 +31,13 @@ Private reports (Power BI `app.powerbi.com/groups/...`, Tableau Server/Cloud —
 3. **If an Authenticator number-match screen appears** ("Approve sign in", "Enter the number if prompted"): **immediately tell the user the number, prominently, before waiting** — e.g. *"MFA approval needed — open Microsoft Authenticator and enter **NN**. If no notification arrived, open the Authenticator app manually and pull down to refresh — the pending request appears there even when the push fails to deliver."* Then poll in ~15s intervals (`browser_wait_for`) for **at most 2 minutes total**. Never wait silently or unbounded.
 4. **Still on the sign-in page after ~2 minutes** (or the request was denied/expired)? Stop validating this platform: record `Authentication required — <platform>` as one FAIL in the report, continue with the other platform, and end your summary telling the user to run `uv run python scripts/authenticate.py` from `migration-validation-mcp/`, restart the MCP servers, and re-run the validation.
 
+> **NON-NEGOTIABLE: call `generate_validation_report` no matter what happened above.** Full success, partial extraction, or a total authentication failure on BOTH platforms — you must still call it before ending your turn. If a platform failed auth, its only comparison entry can be a single `VisualComparison` titled `"Authentication Status: <platform>"` with one FAIL value explaining the blocker (e.g. `"MFA approval not received within 2 minutes"`). Zero comparisons is still a valid report. **A run that ends without a report is a failed run, even if the reason was authentication, not extraction.**
+
 ## Procedure
+
+### Step 0: Establish a Run ID (before any navigation)
+
+Generate a `RUN_ID` once — `YYYYMMDD_HHMMSS` from the current time — and prefix **every** screenshot filename with it for the rest of this run. **Never reuse a static filename like `tableau-full.png` across runs**: a later run's screenshot silently overwrites an earlier run's file at that same path, corrupting the image links in that earlier run's already-generated report. The `RUN_ID` prefix is what makes each run's evidence immutable.
 
 ### Step 1: Receive Input
 
@@ -48,9 +54,9 @@ Collect from the user:
    - Look for: `.tabWidget .tab`, `.tableau-tab`, `[role="tab"]`, `.storyPointCaption`
    - If tabs exist, iterate through EACH tab:
      a. Click tab → wait for load → screenshot → extract visuals
-     b. Save screenshots as `validation-screenshots/tableau-page-1.png`, `tableau-page-2.png`, etc.
+     b. Save screenshots as `validation-screenshots/{RUN_ID}_tableau-page-1.png`, `{RUN_ID}_tableau-page-2.png`, etc.
    - If no tabs, treat as single page
-5. Use `browser_take_screenshot` — save to `validation-screenshots/tableau-full.png` (default page)
+5. Use `browser_take_screenshot` — save to `validation-screenshots/{RUN_ID}_tableau-full.png` (default page)
 6. Use `browser_snapshot` to read the accessibility tree
 
 > **All screenshots must be saved in a single folder: `validation-screenshots/`**
@@ -188,7 +194,7 @@ async () => {
 1. Use `browser_navigate` to open the Power BI URL
 2. Use `browser_wait_for` to wait for `visual-container, .visualContainerHost` to be present
 3. Wait additional 3-5 seconds for all visuals to render
-4. Use `browser_take_screenshot` — save to `validation-screenshots/powerbi-full.png`
+4. Use `browser_take_screenshot` — save to `validation-screenshots/{RUN_ID}_powerbi-full.png`
 5. Use `browser_snapshot` to read the accessibility tree
 
 ### Step 5: Extract Power BI Visuals

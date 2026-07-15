@@ -19,9 +19,11 @@ server only owns what Playwright cannot: the validation rules.
 ## Layout
 
 ```
-├── main.py                    # entry point → src/server.py
-├── scripts/authenticate.py    # one-time login capture → auth-state.json
-├── src/
+├── main.py                    # entry point → migration_validation/server.py
+├── scripts/
+│   ├── authenticate.py        # one-time login capture → auth-state.json
+│   └── run_playwright_mcp.py  # launches Playwright MCP with the captured session attached
+├── migration_validation/
 │   ├── server.py              # MCP protocol wiring (list_tools / call_tool)
 │   ├── config/                # settings (env/.env driven) + logging
 │   ├── models/                # Pydantic domain models
@@ -29,7 +31,7 @@ server only owns what Playwright cannot: the validation rules.
 │   │   ├── comparison.py      #   ValueComparison, VisualComparison, status
 │   │   ├── report.py          #   ValidationReport, ReportSummary
 │   │   └── history.py         #   ValidationRunRecord, RunHistoryStats
-│   ├── services/              # business logic (no MCP, no I/O with agent)
+│   ├── services/               # business logic (no MCP, no I/O with agent)
 │   │   ├── comparator.py      #   ValueComparator — the comparison bands
 │   │   ├── report_builder.py  #   MarkdownReportBuilder
 │   │   └── run_history.py     #   RunHistoryService — harness-log.json

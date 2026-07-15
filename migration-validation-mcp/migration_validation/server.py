@@ -17,10 +17,10 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
-from src.config.logging_config import logger
-from src.config.settings import settings
-from src.tools.registry import ToolSpec
-from src.tools.validation_tools import (
+from migration_validation.config.logging_config import logger
+from migration_validation.config.settings import settings
+from migration_validation.tools.registry import ToolSpec
+from migration_validation.tools.validation_tools import (
     CompareValuesInput,
     CompareVisualsInput,
     EmptyInput,

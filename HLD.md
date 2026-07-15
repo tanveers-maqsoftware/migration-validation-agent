@@ -10,7 +10,7 @@ The system has three cooperating layers:
 |-------|-----------|----------------|
 | **Orchestrator** | An LLM agent that reads a playbook and decides *what to do next* | `.github/agents/`, `.claude/skills/` (repo root) |
 | **Browser hands** | The **official Playwright MCP server** (`npx @playwright/mcp`) | registered in `.mcp.json` / `.vscode/mcp.json` — no code here |
-| **Domain tools** | This Python MCP server: deterministic comparison + report rendering | `src/` |
+| **Domain tools** | This Python MCP server: deterministic comparison + report rendering | `migration_validation/` |
 
 ## 1. Component architecture
 
@@ -24,10 +24,10 @@ flowchart TB
         PWTOOLS["browser_navigate · browser_snapshot · browser_hover<br/>browser_click · browser_evaluate · browser_wait_for<br/>browser_take_screenshot · browser_tabs · browser_close"]
     end
 
-    subgraph MCP["⚙️ migration-validation MCP (src/server.py)"]
+    subgraph MCP["⚙️ migration-validation MCP (migration_validation/server.py)"]
         TOOLS["compare_values · compare_visuals<br/>generate_validation_report · record_validation_run<br/>get_validation_history · health_check"]
-        SVC["ValueComparator · MarkdownReportBuilder · RunHistoryService<br/>(src/services/)"]
-        MODELS["Pydantic models<br/>(src/models/)"]
+        SVC["ValueComparator · MarkdownReportBuilder · RunHistoryService<br/>(migration_validation/services/)"]
+        MODELS["Pydantic models<br/>(migration_validation/models/)"]
     end
 
     BROWSER["Chromium<br/>Tableau page · Power BI page"]
@@ -70,7 +70,7 @@ sequenceDiagram
     Agent->>PW: browser_close
 ```
 
-## 3. Comparison rules (src/services/comparator.py)
+## 3. Comparison rules (migration_validation/services/comparator.py)
 
 | Value kind | Rule |
 |------------|------|
@@ -116,8 +116,8 @@ Beyond static visual comparison, the playbook exercises the reports:
   sweeps still live in the playbook markdown.
 - **Auth:** `scripts/authenticate.py` captures a session and the shared MCP
   configs pass it via `--storage-state` automatically (through
-  `scripts/run-playwright-mcp.mjs` at the repo root, which writes an empty
-  placeholder when no session exists so fresh clones still start). Remaining
+  `scripts/run_playwright_mcp.py`, which writes an empty placeholder when no
+  session exists so fresh clones still start). Remaining
   gap: a session that expires *mid-run* still needs the user to approve MFA
   on their phone — the playbook's Authentication Gate bounds that wait and
   surfaces the approval number instead of stalling.

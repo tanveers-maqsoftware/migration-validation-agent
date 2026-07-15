@@ -1,7 +1,7 @@
 """Unit tests for the run-history log and its cumulative statistics."""
 
-from src.models.history import ValidationRunRecord
-from src.services.run_history import RunHistoryService
+from migration_validation.models.history import ValidationRunRecord
+from migration_validation.services.run_history import RunHistoryService
 
 
 def _record(pass_rate: float, failed: int = 0, checks: dict | None = None) -> ValidationRunRecord:

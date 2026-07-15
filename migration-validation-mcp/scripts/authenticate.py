@@ -12,7 +12,7 @@ then return to this terminal and press Enter. The session (cookies +
 localStorage) is saved to ``auth-state.json``.
 
 The shared MCP configs launch Playwright through
-``scripts/run-playwright-mcp.mjs`` (repo root), which passes this file via
+``scripts/run_playwright_mcp.py`` (this directory), which passes this file via
 ``--storage-state`` automatically — no config editing needed. Restart the MCP
 servers (reload the VS Code window / restart Claude Code) after capturing so
 the new session is picked up. Validation runs then load private reports
@@ -30,7 +30,7 @@ import asyncio
 
 from playwright.async_api import async_playwright
 
-from src.config.settings import settings
+from migration_validation.config.settings import settings
 
 # Where to land first so you can sign in.
 POWERBI_URL = "https://app.powerbi.com/"

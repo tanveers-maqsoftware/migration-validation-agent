@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     # so private reports open without a login wall.
     auth_state_path: Path = Path("auth-state.json")
 
-    # Comparison bands for numeric values (see src/services/comparator.py):
+    # Comparison bands for numeric values (see migration_validation/services/comparator.py):
     # variance <= pass band → PASS; <= warning band → WARNING; above → FAIL.
     # Defaults follow the validation methodology: 0% = pass, <0.5% = warning.
     numeric_pass_pct: float = 0.0

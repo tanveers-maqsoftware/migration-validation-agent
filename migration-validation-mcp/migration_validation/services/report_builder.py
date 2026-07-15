@@ -9,7 +9,7 @@ final summary table.
 from datetime import datetime
 from pathlib import Path
 
-from src.models import ComparisonStatus, ValidationReport, VisualComparison
+from migration_validation.models import ComparisonStatus, ValidationReport, VisualComparison
 
 _STATUS_BADGES = {
     ComparisonStatus.PASS: "✅ Pass",
