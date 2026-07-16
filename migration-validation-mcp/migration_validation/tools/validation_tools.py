@@ -7,6 +7,7 @@ and rendering the final report, deterministically.
 """
 
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -16,6 +17,7 @@ from migration_validation.models import ValidationReport, Visual, VisualComparis
 from migration_validation.models.history import ValidationRunRecord
 from migration_validation.services.comparator import ValueComparator
 from migration_validation.services.report_builder import MarkdownReportBuilder
+from migration_validation.services.report_mailer import ReportMailer
 from migration_validation.services.run_history import RunHistoryService
 from migration_validation.services.screenshot_dir import ScreenshotDirCleaner
 
@@ -60,6 +62,24 @@ class RecordRunInput(ValidationRunRecord):
     """A completed run to append to the history log (same shape as the record)."""
 
 
+class SendReportEmailInput(BaseModel):
+    report_path: str = Field(
+        description="Path to the generated Markdown report (as returned by "
+        "generate_validation_report)"
+    )
+    summary_line: str | None = Field(
+        default=None,
+        description="One-line outcome for the subject/body, e.g. "
+        "'2/5 visuals pass (40%) — ProductKey 359 missing in Power BI'",
+    )
+    subject: str | None = Field(
+        default=None, description="Overrides the default subject line"
+    )
+    recipients: list[str] | None = Field(
+        default=None, description="Overrides the EMAIL_TO default recipients"
+    )
+
+
 # -- the toolbox --------------------------------------------------------------
 
 class ValidationToolbox:
@@ -71,6 +91,7 @@ class ValidationToolbox:
         report_builder: MarkdownReportBuilder | None = None,
         run_history: RunHistoryService | None = None,
         screenshot_dir_cleaner: ScreenshotDirCleaner | None = None,
+        report_mailer: ReportMailer | None = None,
     ) -> None:
         self._comparator = comparator or ValueComparator()
         self._report_builder = report_builder or MarkdownReportBuilder(
@@ -79,6 +100,16 @@ class ValidationToolbox:
         self._run_history = run_history or RunHistoryService(settings.history_path)
         self._screenshot_dir_cleaner = screenshot_dir_cleaner or ScreenshotDirCleaner(
             settings.screenshots_dir, settings.debug_artifacts_dir
+        )
+        self._report_mailer = report_mailer or ReportMailer(
+            host=settings.smtp_host,
+            port=settings.smtp_port,
+            username=settings.smtp_username,
+            password=settings.smtp_password,
+            use_tls=settings.smtp_use_tls,
+            sender=settings.email_from,
+            default_recipients=settings.email_to,
+            subject_prefix=settings.email_subject_prefix,
         )
 
     async def health_check(self, _: EmptyInput) -> dict[str, Any]:
@@ -120,6 +151,25 @@ class ValidationToolbox:
         if moved:
             result["non_screenshot_files_relocated"] = moved
         return result
+
+    async def send_report_email(self, args: SendReportEmailInput) -> dict[str, Any]:
+        if not (self._report_mailer.is_configured() or args.recipients):
+            return {
+                "sent": False,
+                "reason": (
+                    "Email not configured — set SMTP_HOST, EMAIL_FROM and "
+                    "EMAIL_TO in migration-validation-mcp/.env (plus "
+                    "SMTP_USERNAME/SMTP_PASSWORD if the relay needs login), "
+                    "then restart the MCP server."
+                ),
+            }
+        delivery = self._report_mailer.send(
+            report_path=Path(args.report_path),
+            subject=args.subject,
+            recipients=args.recipients,
+            summary_line=args.summary_line,
+        )
+        return {"sent": True, **delivery}
 
     async def record_validation_run(self, args: RecordRunInput) -> dict[str, Any]:
         record = ValidationRunRecord.model_validate(args.model_dump())

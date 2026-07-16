@@ -190,6 +190,8 @@ async () => {
 - Visual shows partial data with scrollbar
 - Aria labels mention more data points than visible
 
+> **Before scrolling, apply the Large-Table Policy (Step 5c):** estimate the row count from `scrollHeight / rowHeight` — if it exceeds ~300 rows, do NOT full-scroll; validate grand totals first and fall back to first/middle/last band sampling.
+
 ### Step 4: Open Power BI Report
 
 1. Use `browser_navigate` to open the Power BI URL
@@ -335,6 +337,24 @@ async () => {
 - Table visual shows "Total" row at bottom but only partial data above
 - Scroll buttons visible in accessibility tree ("Scroll up", "Scroll down")
 
+### Step 5c: Large-Table Policy (BOTH platforms — overrides full-scroll when tables are huge)
+
+Full-scroll extraction (Steps 3b/5b) is only for tables that fit the budget. **Estimate the row count first**, before scrolling: `estimatedRows ≈ scrollEl.scrollHeight / averageRenderedRowHeight` (measure row height from the currently rendered rows).
+
+**Rule L1 — Size gate.** If `estimatedRows ≤ 300`, do the full scroll extraction as written in 3b/5b. If larger — a table can hold millions of rows; NEVER attempt to scroll it end-to-end — switch to aggregate + sample validation below.
+
+**Rule L2 — Totals first.** Look for rendered aggregates and validate those as the primary check:
+- Power BI: the table's **Total** row / matrix subtotals + grand totals.
+- Tableau: grand total row/column if the sheet has them enabled.
+- Compare every available total via `compare_values` (label `"<Column> · Grand Total"`). A total that matches is strong evidence the full column migrated correctly, even without row-level reads.
+- If one platform shows totals and the other doesn't, still validate the sum: on the totals-less platform derive nothing — instead record a note that the total exists on only one side (cosmetic) and rely on Rule L3 for data validation.
+
+**Rule L3 — Threshold sampling (always, and mandatory when there are no totals).** Extract three deterministic bands: **first 25 rows** (scrollTop 0), **25 rows at the midpoint** (scrollTop = scrollHeight/2), **last 25 rows** (scrollTop = max). Compare rows across platforms **by row key** (the dimension value, e.g. city name), never by position — sort order may differ between platforms. If sort order differs, say so in a note; if the same keys can't be found on both platforms within the sampled bands, extract the Power BI keys' values on Tableau via targeted scroll/tooltip lookup rather than comparing mismatched positions.
+
+**Rule L4 — Row-count check.** Compare row counts when cheaply determinable: exact count if fully extracted, otherwise the `estimatedRows` from both platforms (must agree within 1%; label `"Row count (estimated)"` and mark the estimate in the reason).
+
+**Rule L5 — Disclose coverage.** The `VisualComparison` notes MUST state what was validated: e.g. `"Totals validated + 75 of ~1.2M rows sampled (first/middle/last bands)"`, and the run's `record_validation_run` call MUST list the sampling in `incomplete_items`. Never present a sampled table as fully verified.
+
 ### Step 6: Match Visuals
 
 Match visuals between the two reports:
@@ -366,14 +386,36 @@ For each matched pair, the comparison rules are:
 - Remove thousands separators
 - Trim whitespace
 
-### Step 7b: Filter Validation (when filters/slicers exist on both platforms)
+### Step 7b: Filter Validation (when filters/slicers exist on either platform)
 
-For each filter that exists on both platforms (max 5 filters, first 2 values each, one at a time):
-1. Apply the same filter value on both platforms (`browser_click` the slicer item, wait for re-render).
-2. Re-read the 1-3 most prominent affected values (KPI cards first).
-3. Compare via `compare_values` with labels like `"Year=2011 · Total Sales"`.
-4. Reset both filters before the next one.
-5. Include results as a `VisualComparison` titled `"Filter check: <Filter>"` in the report's comparisons. A filter missing on one platform = one FAIL value.
+**Rule F0 — Inventory & match (always do this, even if you skip applying filters).**
+Enumerate filters on both platforms and match them by normalized field name:
+- Tableau: `.tabQuickFilter` zones, `.tab-filter`, parameter controls — note each filter's field name and widget type (dropdown / single-select / multi-select / slider / date range).
+- Power BI: `.slicer-container` visuals on the canvas **and** the Filters pane entries (`[data-testid*="filter"]`, pane cards).
+- A filter present on one platform but not the other = one **FAIL** value (`"Filter <Field>: missing on <platform>"`). Filters pane empty + no slicers on both = record filter validation as **N/A** with a note.
+
+**Rule F1 — Selection budget (deterministic, so runs are reproducible).**
+Validate at most **5 matched filters**, in the order they appear top-to-bottom / left-to-right in the Tableau report. For each filter test the **first 2 non-default values** in Tableau's displayed order (1 value if the filter is single-value). Never test combinations of two filters — one filter at a time, always from a clean baseline.
+
+**Rule F2 — Baseline before anything.**
+Before applying any value of a filter, record the **baseline**: the 1–3 most prominent affected values (priority: KPI cards → chart total/largest data point → first table row + row count). The same labels must be re-read after applying and after resetting.
+
+**Rule F3 — Apply identically on both platforms.**
+- Tableau: open the quick-filter widget, `browser_click` the value; for multi-select, uncheck "(All)" first so exactly one value is active.
+- Power BI: `browser_click` the slicer item; if the filter only exists in the Filters pane, expand the card and check the value's checkbox. For multi-select slicers, ensure exactly the same single value is selected (Ctrl-click semantics differ — verify the selection state, not the click).
+- Wait for re-render on **both** platforms before reading anything: Tableau — wait until the `.tab-loading` / glass-pane indicator disappears plus 2s; Power BI — wait until visual spinners (`.circle`, `[class*="spinner"]`) disappear plus 2s.
+
+**Rule F4 — Verify the filter actually applied before comparing.**
+Confirm at least one of: (a) the widget shows the value selected (checkbox state / slicer highlight / filter chip), AND (b) at least one baseline value changed from Rule F2 — a filter that changes nothing is suspicious unless the value covers all data. If application cannot be confirmed on a platform, record that value as **FAIL** with reason `"Filter did not apply on <platform>"` — do NOT compare unverified numbers.
+
+**Rule F5 — Compare the filtered values.**
+Re-read the same 1–3 labels from Rule F2 on both platforms and send to `compare_values` with labels `"<Field>=<Value> · <Measure>"` (e.g. `"Year=2011 · Total Sales"`). Standard tolerance bands decide pass/warning/fail.
+
+**Rule F6 — Reset and verify the reset.**
+Clear the filter on both platforms (Tableau: filter menu "Clear"/select All; Power BI: slicer eraser icon / uncheck). Re-read the baseline labels — they must match Rule F2's values exactly. If the baseline does not return, **reload the report page** (`browser_navigate` again) before testing the next filter; never let one filter's residue contaminate the next check.
+
+**Rule F7 — Record everything.**
+One `VisualComparison` titled `"Filter check: <Field>"` per filter, containing one value row per (value × measure) tested, plus FAIL rows from F0/F4. Add a note stating which values were tested and which were skipped by the budget (F1) so coverage is explicit in the report.
 
 ### Step 7c: Drill-through Validation (when drill paths exist)
 
@@ -384,6 +426,17 @@ For one representative drillable visual: capture the parent value, drill one lev
 **Preferred:** call `generate_validation_report` (migration-validation MCP server) with both URLs and the list of visual comparisons — it writes a timestamped Markdown report into `validation-reports/` and returns the path plus summary.
 
 After the report is written, call `record_validation_run` with the summary counts so the run lands in `harness-log.json`; it returns cumulative statistics across all runs (also available anytime via `get_validation_history`).
+
+### Step 8b: Email the Report
+
+After `generate_validation_report` succeeds, call `send_report_email` (migration-validation MCP server) with:
+- `report_path` — exactly as returned by `generate_validation_report`
+- `summary_line` — one line with the verdict and headline finding, e.g. `"2/5 visuals pass (40%) — ProductKey 359 missing in Power BI"`
+
+The tool emails the report (inline body + `.md` attachment) to the recipients configured in `.env` (`SMTP_HOST`, `EMAIL_FROM`, `EMAIL_TO`, optional `SMTP_USERNAME`/`SMTP_PASSWORD`).
+
+- If it returns `sent: false` (email not configured), do **not** treat this as a validation failure — mention in your final summary that the report was generated but email delivery is not configured, and how to enable it.
+- If it returns an `error` (SMTP failure), retry once; if it still fails, report the error in your summary. The validation run itself is still complete — the report on disk is the source of truth.
 
 The report contains:
 - Dashboard name

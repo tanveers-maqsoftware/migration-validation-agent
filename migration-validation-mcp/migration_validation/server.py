@@ -26,6 +26,7 @@ from migration_validation.tools.validation_tools import (
     EmptyInput,
     GenerateReportInput,
     RecordRunInput,
+    SendReportEmailInput,
     ValidationToolbox,
 )
 
@@ -67,6 +68,17 @@ def build_tool_specs(toolbox: ValidationToolbox) -> dict[str, ToolSpec]:
             ),
             input_model=GenerateReportInput,
             handler=toolbox.generate_validation_report,
+        ),
+        ToolSpec(
+            name="send_report_email",
+            description=(
+                "Email a generated validation report (body + .md attachment) "
+                "to the configured recipients. Uses SMTP settings from .env; "
+                "answers sent=false with instructions when email is not "
+                "configured instead of failing"
+            ),
+            input_model=SendReportEmailInput,
+            handler=toolbox.send_report_email,
         ),
         ToolSpec(
             name="record_validation_run",

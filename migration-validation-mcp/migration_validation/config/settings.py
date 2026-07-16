@@ -38,6 +38,20 @@ class Settings(BaseSettings):
     # Where record_validation_run appends its per-run harness records.
     history_path: Path = Path("harness-log.json")
 
+    # Email delivery of finished reports (send_report_email tool). Leave
+    # smtp_host / email_from / email_to empty to disable — the tool then
+    # answers "not configured" instead of failing the run. Works with any
+    # SMTP relay: smtp.office365.com:587 (M365), smtp.gmail.com:587 (app
+    # password), or an internal relay.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
+    email_from: str = ""
+    email_to: str = ""  # comma-separated default recipient list
+    email_subject_prefix: str = "[Migration Validation]"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
